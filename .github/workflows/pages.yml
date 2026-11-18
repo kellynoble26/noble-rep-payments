@@ -19,6 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Keep an unlocked review copy off Pages
+        run: |
+          rm -rf preview
+          if [ -f received.html ] && ! grep -q 'AES-GCM' received.html; then
+            echo "received.html is not passcode-sealed; omitting it from Pages"
+            rm -f received.html
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
