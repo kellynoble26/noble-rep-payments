@@ -338,6 +338,8 @@ tbody tr:hover td { background: #fafaf9; }
 tr.total:hover td, tr.total td { background: #f5f5f4; }
 .subject { min-width: 220px; }
 .empty { color: #57534e; padding: 12px 4px; }
+.note { margin: 0 0 8px; color: #444; }
+#summary-card[hidden], #month-card[hidden], #payment-card[hidden] { display: none; }
 .banner {
   display: none;
   background: #7f1d1d;
@@ -401,6 +403,12 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
       <button type="button" data-view="GC" aria-pressed="false">GC only</button>
       <button type="button" data-view="WD" aria-pressed="false">WD only</button>
     </div>
+    <div class="seg" role="group" aria-label="Summary">
+      <button type="button" data-summary="ytd" aria-pressed="false">Year-to-Date</button>
+      <button type="button" data-summary="month" aria-pressed="false">By Month</button>
+      <button type="button" data-summary="rep" aria-pressed="false">By Rep</button>
+      <button type="button" data-summary="company" aria-pressed="false">By Company</button>
+    </div>
     <label class="search">Search
       <input id="q" type="search" placeholder="Client or invoice" autocomplete="off" aria-label="Search by client or invoice">
     </label>
@@ -414,13 +422,18 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
     </label>
   </div>
   <section class="stats" id="stats" aria-live="polite"></section>
-  <section class="card">
+  <section class="card" id="month-card">
     <h2>By month</h2>
     <div class="scroll"><table id="months"></table></div>
   </section>
-  <section class="card">
+  <section class="card" id="payment-card">
     <h2>Payments</h2>
     <div class="scroll"><table id="payments"></table></div>
+  </section>
+  <section class="card" id="summary-card" hidden>
+    <h2 id="summary-title"></h2>
+    <p class="note" id="summary-note"></p>
+    <div class="scroll"><table id="summary-table"></table></div>
   </section>
   <p class="check noprint" id="check"></p>
 </main>
@@ -470,6 +483,13 @@ function verifyData() {
 let view = "all";
 let query = "";
 let sort = "date-asc";
+let summary = "";
+const SUMMARY_LABEL = {
+  ytd: "Year-to-Date",
+  month: "By Month",
+  rep: "By Rep",
+  company: "By Company"
+};
 
 function selected() {
   const q = query.trim().toLowerCase();
@@ -497,6 +517,86 @@ function selected() {
 
 function sum(rows) { return rows.reduce((n, row) => n + row.amountCents, 0); }
 
+function summaryTable(headers, lines) {
+  const table = document.getElementById("summary-table");
+  const head = el("thead");
+  const hr = el("tr");
+  headers.forEach((label, i) => hr.append(el("th", i ? "num" : "", label)));
+  head.append(hr);
+  const body = el("tbody");
+  if (!lines.length) {
+    const tr = el("tr");
+    const td = el("td", "empty", "No payments in this view.");
+    td.colSpan = headers.length;
+    tr.append(td);
+    body.append(tr);
+  }
+  for (const line of lines) {
+    const tr = el("tr", line.total ? "total" : "");
+    line.cells.forEach((value, i) => tr.append(el("td", i ? "num" : "", value)));
+    body.append(tr);
+  }
+  table.replaceChildren(head, body);
+}
+
+function renderSummary(rows, total) {
+  const title = document.getElementById("summary-title");
+  const note = document.getElementById("summary-note");
+  title.textContent = SUMMARY_LABEL[summary];
+  if (summary === "ytd") {
+    note.textContent = "01/01/2026 through 11/17/2026 (Arizona time). " + VIEW_LABEL[view] + ".";
+    const lines = [{ cells: [VIEW_LABEL[view], String(rows.length), money(total)], total: true }];
+    if (view === "all") {
+      const gc = rows.filter(row => row.co === "GC");
+      const wd = rows.filter(row => row.co === "WD");
+      lines.unshift({ cells: ["Noble General Contracting (GC)", String(gc.length), money(sum(gc))] });
+      lines.splice(1, 0, { cells: ["Noble Windows & Doors (WD)", String(wd.length), money(sum(wd))] });
+    }
+    summaryTable(["", "Payments", "Amount received"], lines);
+    return;
+  }
+  if (summary === "month") {
+    note.textContent = "One row per month for " + VIEW_LABEL[view] + ". Count and amount received.";
+    const buckets = new Map();
+    for (const row of rows) {
+      const ym = row.when.slice(0, 7);
+      if (!buckets.has(ym)) buckets.set(ym, { n: 0, total: 0 });
+      const bucket = buckets.get(ym);
+      bucket.n += 1;
+      bucket.total += row.amountCents;
+    }
+    const lines = [...buckets.keys()].sort().map(ym => {
+      const bucket = buckets.get(ym);
+      return { cells: [monthLabel(ym), String(bucket.n), money(bucket.total)] };
+    });
+    if (lines.length) lines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+    summaryTable(["Month", "Payments", "Total"], lines);
+    return;
+  }
+  if (summary === "rep") {
+    note.textContent = "These payments do not include a rep code or name. No rep is assigned here.";
+    const lines = rows.length
+      ? [{ cells: ["No rep recorded", String(rows.length), money(total)], total: true }]
+      : [];
+    summaryTable(["Rep", "Payments", "Total"], lines);
+    return;
+  }
+  note.textContent = "Grouped by the Customer on each payment. " + VIEW_LABEL[view] + ".";
+  const buckets = new Map();
+  for (const row of rows) {
+    const name = row.customer;
+    if (!buckets.has(name)) buckets.set(name, { n: 0, total: 0 });
+    const bucket = buckets.get(name);
+    bucket.n += 1;
+    bucket.total += row.amountCents;
+  }
+  const lines = [...buckets.entries()]
+    .sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0]))
+    .map(([name, bucket]) => ({ cells: [name, String(bucket.n), money(bucket.total)] }));
+  if (lines.length) lines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+  summaryTable(["Customer", "Payments", "Total"], lines);
+}
+
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -510,8 +610,13 @@ function render() {
   const gc = rows.filter(row => row.co === "GC");
   const wd = rows.filter(row => row.co === "WD");
   document.body.dataset.view = view;
+  document.body.dataset.summary = summary;
   document.body.dataset.count = String(rows.length);
   document.body.dataset.totalCents = String(total);
+  document.getElementById("month-card").hidden = summary !== "";
+  document.getElementById("payment-card").hidden = summary !== "";
+  document.getElementById("summary-card").hidden = summary === "";
+  if (summary) renderSummary(rows, total);
 
   const stats = document.getElementById("stats");
   stats.replaceChildren();
@@ -623,8 +728,9 @@ function render() {
 
   const sortLabel = document.getElementById("sort").selectedOptions[0].textContent;
   const searchNote = query.trim() ? " Search: " + query.trim() + "." : "";
+  const summaryNote = summary ? " Summary: " + SUMMARY_LABEL[summary] + "." : " Sorted by " + sortLabel + ".";
   document.getElementById("printmeta").textContent =
-    "View: " + VIEW_LABEL[view] + ". " + rows.length + " payments. Total received " + money(total) + "." + searchNote + " Sorted by " + sortLabel + ".";
+    "View: " + VIEW_LABEL[view] + ". " + rows.length + " payments. Total received " + money(total) + "." + searchNote + summaryNote;
 }
 
 document.querySelectorAll(".seg button").forEach(button => {
@@ -654,6 +760,21 @@ if (["date-asc", "date-desc", "amount-desc", "amount-asc"].includes(params.get("
   sort = params.get("sort");
   document.getElementById("sort").value = sort;
 }
+if (["ytd", "month", "rep", "company"].includes(params.get("summary"))) {
+  summary = params.get("summary");
+  document.querySelectorAll("[data-summary]").forEach(button => {
+    button.setAttribute("aria-pressed", button.dataset.summary === summary ? "true" : "false");
+  });
+}
+document.querySelectorAll("[data-summary]").forEach(button => {
+  button.addEventListener("click", () => {
+    summary = summary === button.dataset.summary ? "" : button.dataset.summary;
+    document.querySelectorAll("[data-summary]").forEach(other => {
+      other.setAttribute("aria-pressed", other.dataset.summary === summary ? "true" : "false");
+    });
+    render();
+  });
+});
 document.getElementById("q").addEventListener("input", event => { query = event.target.value; render(); });
 document.getElementById("sort").addEventListener("change", event => { sort = event.target.value; render(); });
 document.getElementById("print").addEventListener("click", () => window.print());
