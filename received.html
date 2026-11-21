@@ -138,6 +138,19 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 tr.total td { background: #f5f5f4; font-weight: 700; }
 tbody tr:hover td { background: #fafaf9; }
 tr.total:hover td, tr.total td { background: #f5f5f4; }
+button.drill, button.back {
+  font: inherit;
+  font-weight: inherit;
+  color: #1f4e79;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+button.back { font-weight: 700; margin: 0 0 10px; }
 .subject { min-width: 220px; }
 .empty { color: #57534e; padding: 12px 4px; }
 .note { margin: 0 0 8px; color: #444; }
@@ -170,7 +183,7 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
   .stat, .card { box-shadow: none; border-radius: 0; }
   .stats { gap: 0; }
   .stat { border: 1px solid #d6d3d1; }
-  a { color: inherit; text-decoration: none; }
+  a, button.drill { color: inherit; text-decoration: none; }
   table { font-size: 10.5px; }
   th, td { padding: 3px 4px; }
   th { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -333,6 +346,7 @@ let view = "all";
 let query = "";
 let sort = "date-asc";
 let summary = "overview";
+let drill = null;
 const SUMMARY_LABEL = {
   ytd: "Year-to-Date",
   year: "Year",
@@ -380,6 +394,15 @@ function selected() {
 
 function sum(rows) { return rows.reduce((n, row) => n + row.amountCents, 0); }
 
+function drillSpec(title, paymentRows) {
+  return paymentRows && paymentRows.length ? { title, rows: paymentRows } : null;
+}
+
+function openDrill(spec) {
+  drill = spec;
+  render();
+}
+
 function makeTable(headers, lines, emptyText) {
   const wrap = el("div", "scroll");
   const table = el("table");
@@ -397,12 +420,33 @@ function makeTable(headers, lines, emptyText) {
   }
   for (const line of lines) {
     const tr = el("tr", line.total ? "total" : "");
-    line.cells.forEach((value, i) => tr.append(el("td", i ? "num" : "", value)));
+    line.cells.forEach((value, i) => {
+      const td = el("td", i ? "num" : "");
+      const spec = line.drills && line.drills[i];
+      if (spec) {
+        const button = el("button", "drill", value);
+        button.type = "button";
+        button.addEventListener("click", () => openDrill(spec));
+        td.append(button);
+      } else {
+        td.textContent = value;
+      }
+      tr.append(td);
+    });
     body.append(tr);
   }
   table.append(head, body);
   wrap.append(table);
   return wrap;
+}
+
+function totalLine(label, paymentRows) {
+  const spec = drillSpec(label, paymentRows);
+  return {
+    cells: [label, String(paymentRows.length), money(sum(paymentRows))],
+    drills: [spec, spec, spec],
+    total: label === "Total"
+  };
 }
 
 function summaryTable(headers, lines, emptyText) {
@@ -427,35 +471,72 @@ function amountGrid(rowLabels, rowKey, rows) {
   const lines = rowLabels.map(label => {
     const mine = rows.filter(row => rowKey(row) === label.key);
     const cells = [label.name];
+    const drills = [drillSpec(label.name, mine)];
     for (const ym of months) {
-      const amt = sum(mine.filter(row => row.when.slice(0, 7) === ym));
+      const group = mine.filter(row => row.when.slice(0, 7) === ym);
+      const amt = sum(group);
       cells.push(amt ? money(amt) : "");
+      drills.push(amt ? drillSpec(label.name + " · " + monthLabel(ym), group) : null);
     }
     cells.push(money(sum(mine)));
-    return { cells };
+    drills.push(drillSpec(label.name, mine));
+    return { cells, drills };
   });
   if (lines.length) {
     const totalCells = ["Total"];
-    for (const ym of months) totalCells.push(money(sum(rows.filter(row => row.when.slice(0, 7) === ym))));
+    const totalDrills = [drillSpec("Total", rows)];
+    for (const ym of months) {
+      const group = rows.filter(row => row.when.slice(0, 7) === ym);
+      totalCells.push(group.length ? money(sum(group)) : "");
+      totalDrills.push(drillSpec("Total · " + monthLabel(ym), group));
+    }
     totalCells.push(money(sum(rows)));
-    lines.push({ cells: totalCells, total: true });
+    totalDrills.push(drillSpec("Total", rows));
+    lines.push({ cells: totalCells, drills: totalDrills, total: true });
   }
   return { headers, lines };
 }
 
+function renderDrill(spec) {
+  const title = document.getElementById("summary-title");
+  const note = document.getElementById("summary-note");
+  const body = document.getElementById("summary-body");
+  body.replaceChildren();
+  const listed = spec.rows.slice().sort((a, b) => a.when < b.when ? -1 : a.when > b.when ? 1 : a.i - b.i);
+  title.textContent = spec.title;
+  note.textContent = listed.length + " payments. Total received " + money(sum(listed)) + ".";
+  const back = el("button", "back noprint", "Back to Summary");
+  back.type = "button";
+  back.id = "back-summary";
+  back.addEventListener("click", () => { drill = null; render(); });
+  const lines = listed.map(row => ({
+    cells: [row.customer, row.whenText, money(row.amountCents), row.co, row.invoice, row.method, row.source]
+  }));
+  body.append(back, makeTable(
+    ["Customer", "Date", "Amount", "GC/WD", "Invoice #", "Method", "Source"],
+    lines,
+    "No payments in this total."
+  ));
+}
+
 function renderSummary(rows, total) {
+  if (drill) {
+    renderDrill(drill);
+    return;
+  }
   const title = document.getElementById("summary-title");
   const note = document.getElementById("summary-note");
   document.getElementById("summary-body").replaceChildren();
   title.textContent = SUMMARY_LABEL[summary];
   if (summary === "ytd") {
     note.textContent = "01/01/2026 through 11/18/2026 (Arizona time). " + VIEW_LABEL[view] + ".";
-    const lines = [{ cells: [VIEW_LABEL[view], String(rows.length), money(total)], total: true }];
+    const gc = rows.filter(row => row.co === "GC");
+    const wd = rows.filter(row => row.co === "WD");
+    const lines = [totalLine(VIEW_LABEL[view], rows)];
     if (view === "all") {
-      const gc = rows.filter(row => row.co === "GC");
-      const wd = rows.filter(row => row.co === "WD");
-      lines.unshift({ cells: ["Noble General Contracting (GC)", String(gc.length), money(sum(gc))] });
-      lines.splice(1, 0, { cells: ["Noble Windows & Doors (WD)", String(wd.length), money(sum(wd))] });
+      lines.unshift(totalLine("Noble General Contracting (GC)", gc));
+      lines.splice(1, 0, totalLine("Noble Windows & Doors (WD)", wd));
+      lines[2].total = true;
     }
     summaryTable(["", "Payments", "Amount received"], lines);
     return;
@@ -471,11 +552,8 @@ function renderSummary(rows, total) {
       bucket.n += 1;
       bucket.total += row.amountCents;
     }
-    const lines = [...buckets.keys()].sort().map(year => {
-      const bucket = buckets.get(year);
-      return { cells: [year, String(bucket.n), money(bucket.total)] };
-    });
-    if (lines.length) lines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+    const lines = [...buckets.keys()].sort().map(year => totalLine(year, rows.filter(row => row.when.slice(0, 4) === year)));
+    if (lines.length) lines.push(totalLine("Total", rows));
     if (!lines.length && yearPick !== "all") note.textContent = "No data yet for this year.";
     summaryTable(["Year", "Payments", "Total"], lines, "No data yet for this year.");
     return;
@@ -491,19 +569,16 @@ function renderSummary(rows, total) {
       bucket.n += 1;
       bucket.total += row.amountCents;
     }
-    const lines = [...buckets.keys()].sort().map(ym => {
-      const bucket = buckets.get(ym);
-      return { cells: [monthLabel(ym), String(bucket.n), money(bucket.total)] };
-    });
-    if (lines.length) lines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+    const lines = [...buckets.keys()].sort().map(ym => totalLine(monthLabel(ym), rows.filter(row => row.when.slice(0, 7) === ym)));
+    if (lines.length) lines.push(totalLine("Total", rows));
     summaryTable(["Month", "Payments", "Total"], lines);
     return;
   }
   if (summary === "rep") {
     const repName = repPick === "all" ? "All reps" : repPick;
     note.textContent = "Grouped by rep. " + VIEW_LABEL[view] + ". " + repName + ".";
-    const lines = repGroups(rows).map(group => ({ cells: [group.name, String(group.n), money(group.total)] }));
-    if (lines.length) lines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+    const lines = repGroups(rows).map(group => totalLine(group.name, rows.filter(row => repOf(row) === group.name)));
+    if (lines.length) lines.push(totalLine("Total", rows));
     summaryTable(["Rep", "Payments", "Total"], lines);
     return;
   }
@@ -512,15 +587,12 @@ function renderSummary(rows, total) {
     const companyRows = [];
     if (view !== "WD") companyRows.push({ key: "GC", name: "Noble General Contracting" });
     if (view !== "GC") companyRows.push({ key: "WD", name: "Noble Windows and Doors" });
-    const companyLines = companyRows.map(item => {
-      const mine = rows.filter(row => row.co === item.key);
-      return { cells: [item.name, String(mine.length), money(sum(mine))] };
-    });
-    if (companyLines.length) companyLines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+    const companyLines = companyRows.map(item => totalLine(item.name, rows.filter(row => row.co === item.key)));
+    if (companyLines.length) companyLines.push(totalLine("Total", rows));
     summaryBlock("Each company", ["Company", "Payments", "Total"], companyLines);
     const groups = repGroups(rows);
-    const repLines = groups.map(group => ({ cells: [group.name, String(group.n), money(group.total)] }));
-    if (repLines.length) repLines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+    const repLines = groups.map(group => totalLine(group.name, rows.filter(row => repOf(row) === group.name)));
+    if (repLines.length) repLines.push(totalLine("Total", rows));
     summaryBlock("Each rep", ["Rep", "Payments", "Total"], repLines);
     const repGrid = amountGrid(groups.map(group => ({ key: group.key, name: group.name })), row => repOf(row), rows);
     summaryBlock("Rep by month", repGrid.headers, repGrid.lines);
@@ -540,8 +612,8 @@ function renderSummary(rows, total) {
   }
   const lines = [...buckets.entries()]
     .sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0]))
-    .map(([name, bucket]) => ({ cells: [name, String(bucket.n), money(bucket.total)] }));
-  if (lines.length) lines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+    .map(([name, bucket]) => totalLine(name, rows.filter(row => row.customer === name)));
+  if (lines.length) lines.push(totalLine("Total", rows));
   summaryTable(["Customer", "Payments", "Total"], lines);
 }
 
@@ -685,8 +757,9 @@ function render() {
     "View: " + VIEW_LABEL[view] + ". " + rows.length + " payments. Total received " + money(total) + "." + searchNote + summaryNote;
 }
 
-document.querySelectorAll("[data-view]").forEach(button => {
+document.querySelectorAll("button[data-view]").forEach(button => {
   button.addEventListener("click", () => {
+    drill = null;
     view = button.dataset.view;
     summary = "";
     document.querySelectorAll("[data-view]").forEach(other => {
@@ -725,6 +798,7 @@ if (["ytd", "year", "month", "rep", "company", "overview"].includes(params.get("
 document.querySelectorAll("[data-summary]").forEach(button => {
   button.addEventListener("click", () => {
     if (button.dataset.summary === "overview") {
+      drill = null;
       summary = "overview";
       view = "all";
       yearPick = "all";
@@ -745,6 +819,7 @@ document.querySelectorAll("[data-summary]").forEach(button => {
       render();
       return;
     }
+    drill = null;
     summary = summary === button.dataset.summary ? "" : button.dataset.summary;
     document.querySelectorAll("[data-summary]").forEach(other => {
       other.setAttribute("aria-pressed", other.dataset.summary === summary ? "true" : "false");
@@ -764,11 +839,11 @@ yearSelect.lastChild.value = "all";
   option.value = year;
   yearSelect.append(option);
 });
-yearSelect.addEventListener("change", event => { yearPick = event.target.value; render(); });
-document.getElementById("month-pick").addEventListener("change", event => { monthPick = event.target.value; render(); });
-document.getElementById("rep-pick").addEventListener("change", event => { repPick = event.target.value; render(); });
-document.getElementById("company-pick").addEventListener("change", event => { companyPick = event.target.value; render(); });
-document.getElementById("q").addEventListener("input", event => { query = event.target.value; render(); });
+yearSelect.addEventListener("change", event => { drill = null; yearPick = event.target.value; render(); });
+document.getElementById("month-pick").addEventListener("change", event => { drill = null; monthPick = event.target.value; render(); });
+document.getElementById("rep-pick").addEventListener("change", event => { drill = null; repPick = event.target.value; render(); });
+document.getElementById("company-pick").addEventListener("change", event => { drill = null; companyPick = event.target.value; render(); });
+document.getElementById("q").addEventListener("input", event => { drill = null; query = event.target.value; render(); });
 document.getElementById("sort").addEventListener("change", event => { sort = event.target.value; render(); });
 document.getElementById("print").addEventListener("click", () => window.print());
 
