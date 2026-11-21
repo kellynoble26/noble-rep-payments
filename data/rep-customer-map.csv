@@ -1,4 +1,4 @@
-mailbox,rep_file_customer,rep,match_type,report_customers
+mailbox,rep_file_customer,rep,match_type,report_customers,note
 GC,24 - 0115 - Rebekah Wall (6412 S. La Corta Tempe 85283),Nick (222),exact,24 - 0115 - Rebekah Wall (6412 S. La Corta Tempe 85283)
 GC,25 - 0066 - Bank Conversion,George (007),exact,25 - 0066 - Bank Conversion
 GC,25 - 0070 - Building H - Bullhead Holding LLC,Christian (444),exact,25 - 0070 - Building H - Bullhead Holding LLC
@@ -146,15 +146,15 @@ WD,Steve & Jodine De Laveaga #1,Nick (222),exact,Steve & Jodine De Laveaga #1
 WD,Steve and Jodine De Levaega,Nick (222),exact,Steve and Jodine De Levaega
 WD,Toma and Dawna Lepler,Nick (222),exact,Toma and Dawna Lepler
 WD,26-WD-HERWIG-6037 E CHARTER OAK RD,Eric (333),exact,26-WD-HERWIG-6037 E CHARTER OAK RD
-WD,BANK CONVERSION NGC,Eric (333),fuzzy,BANK CONVERSION
+WD,BANK CONVERSION NGC,Eric (George),fuzzy,BANK CONVERSION,"Kelly override 11/20: Eric ordered material, George true rep"
 WD,HARR-JACKLIN DR,Eric (333),exact,HARR-JACKLIN DR
-WD,W/D-26-FADUL NGC,Eric (333),fuzzy,W/D-26-FADUL
-WD,W/D-26-LAKE PLEASANT NGC,Eric (333),fuzzy,W/D-26-LAKE PLEASANT
+WD,W/D-26-FADUL NGC,Eric (George),fuzzy,W/D-26-FADUL,"Kelly override 11/20: Eric ordered material, George true rep"
+WD,W/D-26-LAKE PLEASANT NGC,Eric (George),fuzzy,W/D-26-LAKE PLEASANT,"Kelly override 11/20: Eric ordered material, George true rep"
 WD,"Gin Luxe, LLC. Ginny Burroughs",Eric (333),unmatched,
 WD,WD-25-DENEKE,Daniel (555),exact,WD-25-DENEKE
 WD,WD-25-GARVEY,Eric (333),exact,WD-25-GARVEY
 WD,WD-25-SCHEEL,Eric (333),exact,WD-25-SCHEEL
-WD,WD-26-BUILDING H  NGC,Eric (333),fuzzy,WD-26-BUILDING H
+WD,WD-26-BUILDING H  NGC,Eric (Christian),fuzzy,WD-26-BUILDING H,"Kelly override 11/20: Eric ordered material, Christian true rep"
 WD,WD-26-FOX,Eric (333),exact,WD-26-FOX
 WD,WD-26-HELIOS,Eric (333),exact,WD-26-HELIOS
 WD,WD-26-MORRIS,Eric (333),exact,WD-26-MORRIS

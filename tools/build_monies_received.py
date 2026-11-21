@@ -202,7 +202,10 @@ def load_csv_rows(gc_path: Path, wd_path: Path) -> list[dict]:
 
 
 def rep_name(label: str) -> str:
-    match = re.match(r"([A-Za-z]+)", label.strip())
+    label = label.strip()
+    if re.fullmatch(r"[A-Za-z]+ \([A-Za-z]+\)", label):
+        return label
+    match = re.match(r"([A-Za-z]+)", label)
     return match.group(1) if match else "Unassigned"
 
 
@@ -541,6 +544,8 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
         <option value="George">George</option>
         <option value="Nick">Nick</option>
         <option value="Eric">Eric</option>
+        <option value="Eric (George)">Eric (George)</option>
+        <option value="Eric (Christian)">Eric (Christian)</option>
         <option value="Daniel">Daniel</option>
         <option value="Christian">Christian</option>
       </select>
@@ -636,7 +641,7 @@ const SUMMARY_LABEL = {
   overview: "Summary"
 };
 const repOf = row => row.rep || "Unassigned";
-const REP_ORDER = ["Nick", "Eric", "George", "Christian", "Daniel", "Unassigned"];
+const REP_ORDER = ["Nick", "Eric", "Eric (George)", "Eric (Christian)", "George", "Christian", "Daniel", "Unassigned"];
 function repGroups(rows) {
   return REP_ORDER.filter(name => rows.some(row => repOf(row) === name)).map(name => {
     const mine = rows.filter(row => repOf(row) === name);
