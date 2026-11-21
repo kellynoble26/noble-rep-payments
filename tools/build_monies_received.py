@@ -687,6 +687,10 @@ label.search input::-webkit-search-cancel-button { -webkit-appearance: none; app
 .stats.compact { grid-template-columns: repeat(2, 1fr); }
 .stats.compact .stat { text-align: center; display: flex; flex-direction: column; justify-content: center; }
 .stats.compact .stat .v { font-size: 38px; }
+.stats.compact.withmailbox { grid-template-columns: repeat(3, 1fr); }
+.stats.compact .split { justify-content: center; gap: 28px; margin-top: 0; }
+.stats.compact .split .amt { font-size: 22px; }
+.stats.compact .split .s { font-size: 13px; }
 .split { display: flex; gap: 18px; margin-top: 8px; }
 .split .amt { display: block; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .split .s { margin-top: 2px; }
@@ -1321,6 +1325,8 @@ function render() {
   stats.replaceChildren();
   const compact = true;
   stats.classList.toggle("compact", compact);
+  const showMailbox = Boolean(shown && summary === "overview");
+  stats.classList.toggle("withmailbox", showMailbox);
   const cards = [
     ["Payments", String(rows.length), VIEW_LABEL[mailboxScope()]],
     ["Total received", money(total), "Amount received"],
@@ -1333,7 +1339,6 @@ function render() {
   }
   const mailbox = el("article", "stat");
   if (mailboxScope() === "all") {
-    mailbox.append(el("div", "k", "By mailbox"));
     const split = el("div", "split");
     for (const [code, group] of [["GC", gc], ["WD", wd]]) {
       const part = el("div");
@@ -1342,9 +1347,9 @@ function render() {
     }
     mailbox.append(split);
   } else {
-    mailbox.append(el("div", "k", "Mailbox"), el("div", "v", mailboxScope()), el("div", "s", COMPANY[mailboxScope()]));
+    mailbox.append(el("div", "v", mailboxScope()), el("div", "s", COMPANY[mailboxScope()]));
   }
-  if (!compact) stats.append(mailbox);
+  if (showMailbox) stats.append(mailbox);
 
   const byMonth = new Map();
   for (const row of rows) {
