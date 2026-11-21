@@ -253,12 +253,13 @@ def apply_rep_map(rows: list[dict], map_path: Path) -> None:
                         raise SystemExit(f"Rep conflict for {key}: {previous} and {name}")
                     assigned[key] = name
             elif rec["match_type"] == "confirmed":
-                if rec["mailbox"] != "GC":
-                    raise SystemExit(f"Confirmed rep row is not GC: {rec['rep_file_customer']}")
+                mailbox = rec["mailbox"]
+                if mailbox not in {"GC", "WD"}:
+                    raise SystemExit(f"Confirmed rep row has no mailbox: {rec['rep_file_customer']}")
                 for customer in [rec["rep_file_customer"], *customers]:
                     if not customer:
                         continue
-                    key = ("GC", norm_customer(customer))
+                    key = (mailbox, norm_customer(customer))
                     previous = confirmed.get(key)
                     if previous and previous != name:
                         raise SystemExit(f"Rep conflict for {key}: {previous} and {name}")
@@ -267,10 +268,8 @@ def apply_rep_map(rows: list[dict], map_path: Path) -> None:
         exact = assigned.get((row["co"], row["customer"]))
         if exact:
             row["rep"] = exact
-        elif row["co"] == "GC":
-            row["rep"] = confirmed.get(("GC", norm_customer(row["customer"])), "Unassigned")
         else:
-            row["rep"] = "Unassigned"
+            row["rep"] = confirmed.get((row["co"], norm_customer(row["customer"])), "Unassigned")
         if row["rep"] == "Unassigned" and row["co"] == "WD":
             noted = subject_rep(row["subject"])
             if noted:
