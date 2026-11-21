@@ -401,18 +401,20 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
     <p id="printmeta"></p>
   </div>
   <div class="toolbar noprint">
+    <div class="seg" role="group" aria-label="Summary">
+      <button type="button" data-summary="overview" aria-pressed="true">Summary</button>
+    </div>
     <div class="seg" role="group" aria-label="Mailbox">
       <button type="button" data-view="all" aria-pressed="true">All</button>
       <button type="button" data-view="GC" aria-pressed="false">GC only</button>
       <button type="button" data-view="WD" aria-pressed="false">WD only</button>
     </div>
-    <div class="seg" role="group" aria-label="Summary">
+    <div class="seg" role="group" aria-label="Breakdown">
       <button type="button" data-summary="ytd" aria-pressed="false">Year-to-Date</button>
       <button type="button" data-summary="year" aria-pressed="false">Year</button>
       <button type="button" data-summary="month" aria-pressed="false">By Month</button>
       <button type="button" data-summary="rep" aria-pressed="false">By Rep</button>
       <button type="button" data-summary="company" aria-pressed="false">By Company</button>
-      <button type="button" data-summary="overview" aria-pressed="false">Summary</button>
     </div>
     <label class="sort" id="year-filter" hidden>Year
       <select id="year-pick" aria-label="Year"></select>
@@ -465,15 +467,15 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
     </label>
   </div>
   <section class="stats" id="stats" aria-live="polite"></section>
-  <section class="card" id="month-card">
+  <section class="card" id="month-card" hidden>
     <h2>By month</h2>
     <div class="scroll"><table id="months"></table></div>
   </section>
-  <section class="card" id="payment-card">
+  <section class="card" id="payment-card" hidden>
     <h2>Payments</h2>
     <div class="scroll"><table id="payments"></table></div>
   </section>
-  <section class="card" id="summary-card" hidden>
+  <section class="card" id="summary-card">
     <h2 id="summary-title"></h2>
     <p class="note" id="summary-note"></p>
     <div id="summary-body"></div>
@@ -526,7 +528,7 @@ function verifyData() {
 let view = "all";
 let query = "";
 let sort = "date-asc";
-let summary = "";
+let summary = "overview";
 const SUMMARY_LABEL = {
   ytd: "Year-to-Date",
   year: "Year",
@@ -874,8 +876,12 @@ function render() {
 document.querySelectorAll("[data-view]").forEach(button => {
   button.addEventListener("click", () => {
     view = button.dataset.view;
+    summary = "";
     document.querySelectorAll("[data-view]").forEach(other => {
       other.setAttribute("aria-pressed", other === button ? "true" : "false");
+    });
+    document.querySelectorAll("[data-summary]").forEach(other => {
+      other.setAttribute("aria-pressed", "false");
     });
     const hash = view === "all" ? "" : "#" + view.toLowerCase();
     try { history.replaceState(null, "", location.pathname + location.search + hash); } catch (err) {}
