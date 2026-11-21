@@ -538,11 +538,11 @@ REPORT_HTML = r"""<!doctype html>
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
-  background: #f3f4f6;
+  background: #f3ecdf;
   color: #1c1917;
-  font: 14px/1.4 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  font: 15px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
 }
-header.top { background: #1f4e79; color: #fff; }
+header.top { background: transparent; color: #1c1917; }
 .bar, .wrap { max-width: 1280px; margin: 0 auto; }
 .bar {
   display: flex;
@@ -562,91 +562,128 @@ header.top { background: #1f4e79; color: #fff; }
   line-height: 0;
 }
 .logo-badge img { height: 56px; width: auto; display: block; }
-header.top h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0; }
-.subhead { margin: 4px 0 0; font-size: 14px; opacity: .92; }
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #1f4e79;
+}
+header.top h1 {
+  margin: 2px 0 0;
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0;
+  color: #1c1917;
+}
+.subhead { margin: 6px 0 0; font-size: 14px; color: #6b6560; }
 .actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .actions a, header button {
   font: inherit;
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 999px;
+  padding: 8px 14px;
   cursor: pointer;
   text-decoration: none;
 }
-.actions a {
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.75);
-}
-header button {
+.actions a, header button {
   background: #fff;
-  color: #1f4e79;
-  border: 0;
+  color: #1c1917;
+  border: 1px solid #1c1917;
   font-weight: 600;
 }
-header button:hover { background: #f5f5f4; }
+header button:hover, .actions a:hover { background: #f7f1e6; }
 .wrap { padding: 16px 18px 48px; }
 .toolbar {
   position: sticky;
   top: 0;
   z-index: 5;
+  display: block;
+  background: transparent;
+  padding: 0;
+}
+.pills { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.panel {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.08);
-  padding: 10px 12px;
+  margin-top: 12px;
+  background: #e9dfd0;
+  border-radius: 18px;
+  padding: 12px;
 }
-.seg { display: flex; border: 1px solid #1f4e79; border-radius: 8px; overflow: hidden; }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; border: 0; }
 .seg button {
   font: inherit;
   margin: 0;
-  border: 0;
-  border-right: 1px solid #1f4e79;
+  border: 1px solid #1c1917;
+  border-radius: 999px;
   background: #fff;
-  color: #1f4e79;
+  color: #1c1917;
   padding: 8px 14px;
   cursor: pointer;
   font-weight: 600;
 }
-.seg button:last-child { border-right: 0; }
-.seg button[aria-pressed="true"] { background: #1f4e79; color: #fff; }
+.seg button[aria-pressed="true"] { background: #1c1917; color: #fff; border-color: #1c1917; }
+.seg button:hover { background: #f7f1e6; }
+.seg button[aria-pressed="true"]:hover { background: #1c1917; }
 .seg button:focus-visible, .actions a:focus-visible, header button:focus-visible,
 input:focus-visible, select:focus-visible { outline: 2px solid #1f4e79; outline-offset: 2px; }
 label.search, label.sort { display: flex; align-items: center; gap: 6px; color: #57534e; font-size: 13px; }
-label.search { flex: 1; min-width: 200px; }
+label.search { flex: 1; min-width: 220px; }
 input, select {
   font: inherit;
   color: #1c1917;
   background: #fff;
-  border: 1px solid #d6d3d1;
-  border-radius: 8px;
-  padding: 8px 10px;
+  border: 1px solid #d9cfc0;
+  border-radius: 999px;
+  padding: 8px 12px;
 }
-label.search input { width: 100%; }
+.search-field { position: relative; display: flex; flex: 1; align-items: center; }
+label.search input { width: 100%; padding-right: 34px; }
+label.search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+#q-clear {
+  position: absolute;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #1c1917;
+  font: 18px/1 inherit;
+  cursor: pointer;
+  padding: 0;
+}
+#q-clear:hover { background: #f3ecdf; }
+#q-clear[hidden] { display: none; }
+.matchnote { margin: 10px 2px 0; color: #1f4e79; font-weight: 650; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
 .stat, .card {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.08);
-  border-top: 4px solid #1f4e79;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(70, 48, 20, .06);
 }
 .stat { padding: 16px 18px; }
 .stat .k {
-  font-size: 12px;
-  letter-spacing: .04em;
+  font-size: 11px;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  color: #57534e;
-  font-weight: 600;
+  color: #6b6560;
+  font-weight: 700;
 }
 .stat .v {
   margin-top: 4px;
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
+  color: #1c1917;
 }
-.stat .s { margin-top: 6px; color: #444; font-size: 13px; }
+.stat .s { margin-top: 6px; color: #8a837c; font-size: 13px; }
 .split { display: flex; gap: 18px; margin-top: 8px; }
 .split .amt { display: block; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .split .s { margin-top: 2px; }
@@ -654,19 +691,23 @@ label.search input { width: 100%; }
 h2 { font-size: 14px; margin: 0 0 8px; color: #1f4e79; }
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; margin: 0 0 8px; }
-th, td { border: 1px solid #d6d3d1; padding: 6px 8px; vertical-align: top; }
+th, td { border: 0; border-bottom: 1px solid #eadfce; padding: 12px 10px; vertical-align: top; }
 th {
-  background: #1f4e79;
-  color: #fff;
-  font-weight: 600;
+  background: #f7f1e6;
+  color: #6b6560;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
   text-align: left;
   white-space: nowrap;
 }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .co {
   display: inline-block;
-  background: #1f4e79;
-  color: #fff;
+  background: #fff;
+  color: #1f4e79;
+  border: 1px solid #1f4e79;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: .04em;
@@ -675,13 +716,31 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
   padding: 1px 8px;
   white-space: nowrap;
 }
-tbody tr:nth-child(even) td { background: #f4f7fb; }
-tr.total td { background: #d9e4f0; color: #1f4e79; font-weight: 700; }
-tbody tr:hover td { background: #e7eef5; }
-tr.total:hover td { background: #d9e4f0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+button.repchip {
+  font: inherit;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  background: #fff;
+  color: #1c1917;
+  border: 1px solid #e4d9c8;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(70, 48, 20, .04);
+}
+button.repchip strong { font-weight: 700; }
+button.repchip .meta { color: #6b6560; font-weight: 500; }
+button.repchip:hover { border-color: #1f4e79; background: #f7f1e6; }
+tbody tr:hover td { background: #faf6f0; }
+tr.total td { background: #f7f1e6; color: #1c1917; font-weight: 700; }
+tr.total:hover td { background: #f7f1e6; }
 a, a:hover, a:focus, a:visited,
 button.drill, button.drill:hover, button.drill:focus, button.drill:active,
-button.back, button.back:hover, button.back:focus, button.back:active {
+button.back, button.back:hover, button.back:focus, button.back:active,
+button.repchip, button.repchip:hover, button.repchip:focus {
   text-decoration: none;
 }
 button.drill, button.back {
@@ -695,7 +754,7 @@ button.drill, button.back {
   text-align: inherit;
   border-radius: 4px;
 }
-button.drill:hover, button.back:hover { color: #163a5c; background: #e7eef5; }
+button.drill:hover, button.back:hover { color: #163a5c; background: #f3ecdf; }
 button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
 .subject { min-width: 220px; }
 .empty { color: #57534e; padding: 12px 4px; }
@@ -717,7 +776,7 @@ button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
   .bar { flex-direction: column; align-items: flex-start; }
   .logo-badge img { height: 48px; }
   .stats { grid-template-columns: 1fr; }
-  header.top h1 { font-size: 22px; }
+  header.top h1 { font-size: 32px; }
 }
 @media print {
   header.top, .noprint, .check { display: none !important; }
@@ -728,7 +787,8 @@ button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
   .wrap { max-width: none; padding: 0; }
   .stat, .card { box-shadow: none; border-radius: 0; }
   .stats { gap: 0; }
-  .stat { border: 1px solid #d6d3d1; border-top: 3px solid #1f4e79; }
+  .stat { border: 1px solid #eadfce; }
+  th, td { border-bottom: 1px solid #eadfce; }
   a, a:hover, a:visited, button.drill, button.drill:hover, button.back, button.back:hover {
     color: inherit;
     text-decoration: none;
@@ -750,6 +810,7 @@ button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
     <div class="brand">
       <span class="logo-badge"><img src="__LOGO_SRC__" alt="Noble" height="56"></span>
       <div>
+        <p class="eyebrow">Monies received</p>
         <h1>Receipts and Reps</h1>
         <p class="subhead">Updated __UPDATED__ · __RANGE__ (Arizona time)</p>
       </div>
@@ -766,6 +827,7 @@ button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
     <p id="printmeta"></p>
   </div>
   <div class="toolbar noprint">
+    <div class="pills">
     <div class="seg" role="group" aria-label="Summary">
       <button type="button" data-summary="overview" aria-pressed="true">Summary</button>
     </div>
@@ -781,6 +843,8 @@ button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
       <button type="button" data-summary="rep" aria-pressed="false">By Rep</button>
       <button type="button" data-summary="company" aria-pressed="false">By Company</button>
     </div>
+    </div>
+    <div class="panel">
     <label class="sort" id="year-filter" hidden>Year
       <select id="year-pick" aria-label="Year"></select>
     </label>
@@ -822,7 +886,10 @@ button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
       </select>
     </label>
     <label class="search">Search
-      <input id="q" type="search" placeholder="Client or invoice" autocomplete="off" aria-label="Search by client or invoice">
+      <span class="search-field">
+        <input id="q" type="search" placeholder="Customer or job" autocomplete="off" aria-label="Search by customer or job" enterkeyhint="search">
+        <button type="button" id="q-clear" aria-label="Clear search" hidden>&times;</button>
+      </span>
     </label>
     <label class="sort">Sort
       <select id="sort" aria-label="Sort payments">
@@ -832,6 +899,8 @@ button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
         <option value="amount-asc">Amount received, low to high</option>
       </select>
     </label>
+    </div>
+    <p class="matchnote" id="matchnote" hidden></p>
   </div>
   <section class="stats" id="stats" aria-live="polite"></section>
   <section class="card" id="month-card" hidden>
@@ -928,7 +997,9 @@ function selected() {
   if (summary === "year" && yearPick !== "all") rows = rows.filter(row => row.when.slice(0, 4) === yearPick);
   if (q) {
     rows = rows.filter(row =>
-      row.customer.toLowerCase().includes(q) || row.invoice.toLowerCase().includes(q)
+      (row.customer || "").toLowerCase().includes(q) ||
+      (row.subject || "").toLowerCase().includes(q) ||
+      (row.invoice || "").toLowerCase().includes(q)
     );
   }
   rows = rows.slice().sort((a, b) => {
@@ -949,8 +1020,9 @@ function selected() {
 
 function sum(rows) { return rows.reduce((n, row) => n + row.amountCents, 0); }
 
-function drillSpec(title, paymentRows) {
-  return paymentRows && paymentRows.length ? { title, rows: paymentRows } : null;
+function drillSpec(title, paymentRows, test) {
+  if (!paymentRows || !paymentRows.length) return null;
+  return { title, test: test || (() => true) };
 }
 
 function openDrill(spec) {
@@ -998,13 +1070,41 @@ function makeTable(headers, lines, emptyText) {
   return wrap;
 }
 
-function totalLine(label, paymentRows) {
-  const spec = drillSpec(label, paymentRows);
+function totalLine(label, paymentRows, test) {
+  const spec = drillSpec(label, paymentRows, test);
   return {
     cells: [label, String(paymentRows.length), money(sum(paymentRows))],
     drills: [spec, spec, spec],
     total: label === "Total"
   };
+}
+
+function repChips(groups, allRows) {
+  const wrap = el("div", "chips");
+  for (const group of groups) {
+    const button = el("button", "repchip");
+    button.type = "button";
+    button.append(
+      el("strong", "", group.name),
+      el("span", "meta", group.n + " · " + money(group.total))
+    );
+    button.addEventListener("click", () => openDrill({
+      title: group.name,
+      test: row => repOf(row) === group.key
+    }));
+    wrap.append(button);
+  }
+  if (groups.length && allRows) {
+    const total = el("button", "repchip");
+    total.type = "button";
+    total.append(
+      el("strong", "", "Total"),
+      el("span", "meta", allRows.length + " · " + money(sum(allRows)))
+    );
+    total.addEventListener("click", () => openDrill({ title: "Total", test: () => true }));
+    wrap.append(total);
+  }
+  return wrap;
 }
 
 function summaryTable(headers, lines, emptyText) {
@@ -1029,27 +1129,27 @@ function amountGrid(rowLabels, rowKey, rows) {
   const lines = rowLabels.map(label => {
     const mine = rows.filter(row => rowKey(row) === label.key);
     const cells = [label.name];
-    const drills = [drillSpec(label.name, mine)];
+    const drills = [drillSpec(label.name, mine, row => rowKey(row) === label.key)];
     for (const ym of months) {
       const group = mine.filter(row => row.when.slice(0, 7) === ym);
       const amt = sum(group);
       cells.push(amt ? money(amt) : "");
-      drills.push(amt ? drillSpec(label.name + " · " + monthLabel(ym), group) : null);
+      drills.push(amt ? drillSpec(label.name + " · " + monthLabel(ym), group, row => rowKey(row) === label.key && row.when.slice(0, 7) === ym) : null);
     }
     cells.push(money(sum(mine)));
-    drills.push(drillSpec(label.name, mine));
+    drills.push(drillSpec(label.name, mine, row => rowKey(row) === label.key));
     return { cells, drills };
   });
   if (lines.length) {
     const totalCells = ["Total"];
-    const totalDrills = [drillSpec("Total", rows)];
+    const totalDrills = [drillSpec("Total", rows, () => true)];
     for (const ym of months) {
       const group = rows.filter(row => row.when.slice(0, 7) === ym);
       totalCells.push(group.length ? money(sum(group)) : "");
-      totalDrills.push(drillSpec("Total · " + monthLabel(ym), group));
+      totalDrills.push(drillSpec("Total · " + monthLabel(ym), group, row => row.when.slice(0, 7) === ym));
     }
     totalCells.push(money(sum(rows)));
-    totalDrills.push(drillSpec("Total", rows));
+    totalDrills.push(drillSpec("Total", rows, () => true));
     lines.push({ cells: totalCells, drills: totalDrills, total: true });
   }
   return { headers, lines };
@@ -1060,7 +1160,7 @@ function renderDrill(spec) {
   const note = document.getElementById("summary-note");
   const body = document.getElementById("summary-body");
   body.replaceChildren();
-  const listed = spec.rows.slice().sort((a, b) => a.when < b.when ? -1 : a.when > b.when ? 1 : a.i - b.i);
+  const listed = selected().filter(spec.test || (() => true)).sort((a, b) => a.when < b.when ? -1 : a.when > b.when ? 1 : a.i - b.i);
   title.textContent = spec.title;
   note.textContent = listed.length + " payments. Total received " + money(sum(listed)) + ".";
   const back = el("button", "back noprint", "Back to Summary");
@@ -1090,10 +1190,10 @@ function renderSummary(rows, total) {
     note.textContent = "__RANGE__ (Arizona time). " + VIEW_LABEL[mailboxScope()] + ".";
     const gc = rows.filter(row => row.co === "GC");
     const wd = rows.filter(row => row.co === "WD");
-    const lines = [totalLine(VIEW_LABEL[mailboxScope()], rows)];
+    const lines = [totalLine(VIEW_LABEL[mailboxScope()], rows, () => true)];
     if (mailboxScope() === "all") {
-      lines.unshift(totalLine("Noble General Contracting (GC)", gc));
-      lines.splice(1, 0, totalLine("Noble Windows & Doors (WD)", wd));
+      lines.unshift(totalLine("Noble General Contracting (GC)", gc, row => row.co === "GC"));
+      lines.splice(1, 0, totalLine("Noble Windows & Doors (WD)", wd, row => row.co === "WD"));
       lines[2].total = true;
     }
     summaryTable(["", "Payments", "Amount received"], lines);
@@ -1110,8 +1210,8 @@ function renderSummary(rows, total) {
       bucket.n += 1;
       bucket.total += row.amountCents;
     }
-    const lines = [...buckets.keys()].sort().map(year => totalLine(year, rows.filter(row => row.when.slice(0, 4) === year)));
-    if (lines.length) lines.push(totalLine("Total", rows));
+    const lines = [...buckets.keys()].sort().map(year => totalLine(year, rows.filter(row => row.when.slice(0, 4) === year), row => row.when.slice(0, 4) === year));
+    if (lines.length) lines.push(totalLine("Total", rows, () => true));
     if (!lines.length && yearPick !== "all") note.textContent = "No data yet for this year.";
     summaryTable(["Year", "Payments", "Total"], lines, "No data yet for this year.");
     return;
@@ -1127,17 +1227,18 @@ function renderSummary(rows, total) {
       bucket.n += 1;
       bucket.total += row.amountCents;
     }
-    const lines = [...buckets.keys()].sort().map(ym => totalLine(monthLabel(ym), rows.filter(row => row.when.slice(0, 7) === ym)));
-    if (lines.length) lines.push(totalLine("Total", rows));
+    const lines = [...buckets.keys()].sort().map(ym => totalLine(monthLabel(ym), rows.filter(row => row.when.slice(0, 7) === ym), row => row.when.slice(0, 7) === ym));
+    if (lines.length) lines.push(totalLine("Total", rows, () => true));
     summaryTable(["Month", "Payments", "Total"], lines);
     return;
   }
   if (summary === "rep") {
     const repName = repPick === "all" ? "All reps" : repPick;
     note.textContent = "Grouped by rep. " + VIEW_LABEL[mailboxScope()] + ". " + repName + ".";
-    const lines = repGroups(rows).map(group => totalLine(group.name, rows.filter(row => repOf(row) === group.name)));
-    if (lines.length) lines.push(totalLine("Total", rows));
-    summaryTable(["Rep", "Payments", "Total"], lines);
+    const groups = repGroups(rows);
+    const block = el("div", "summary-block");
+    block.append(repChips(groups, rows));
+    document.getElementById("summary-body").append(block);
     return;
   }
   if (summary === "overview") {
@@ -1146,13 +1247,13 @@ function renderSummary(rows, total) {
     const scope = mailboxScope();
     if (scope !== "WD") companyRows.push({ key: "GC", name: "Noble General Contracting" });
     if (scope !== "GC") companyRows.push({ key: "WD", name: "Noble Windows and Doors" });
-    const companyLines = companyRows.map(item => totalLine(item.name, rows.filter(row => row.co === item.key)));
-    if (companyLines.length) companyLines.push(totalLine("Total", rows));
+    const companyLines = companyRows.map(item => totalLine(item.name, rows.filter(row => row.co === item.key), row => row.co === item.key));
+    if (companyLines.length) companyLines.push(totalLine("Total", rows, () => true));
     summaryBlock("Each company", ["Company", "Payments", "Total"], companyLines);
     const groups = repGroups(rows);
-    const repLines = groups.map(group => totalLine(group.name, rows.filter(row => repOf(row) === group.name)));
-    if (repLines.length) repLines.push(totalLine("Total", rows));
-    summaryBlock("Each rep", ["Rep", "Payments", "Total"], repLines);
+    const repBlock = el("div", "summary-block");
+    repBlock.append(el("h3", "", "Each rep"), repChips(groups, rows));
+    document.getElementById("summary-body").append(repBlock);
     const repGrid = amountGrid(groups.map(group => ({ key: group.key, name: group.name })), row => repOf(row), rows);
     summaryBlock("Rep by month", repGrid.headers, repGrid.lines);
     const companyGrid = amountGrid(companyRows, row => row.co, rows);
@@ -1171,8 +1272,8 @@ function renderSummary(rows, total) {
   }
   const lines = [...buckets.entries()]
     .sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0]))
-    .map(([name, bucket]) => totalLine(name, rows.filter(row => row.customer === name)));
-  if (lines.length) lines.push(totalLine("Total", rows));
+    .map(([name, bucket]) => totalLine(name, rows.filter(row => row.customer === name), row => row.customer === name));
+  if (lines.length) lines.push(totalLine("Total", rows, () => true));
   summaryTable(["Customer", "Payments", "Total"], lines);
 }
 
@@ -1192,6 +1293,18 @@ function render() {
   document.body.dataset.summary = summary;
   document.body.dataset.count = String(rows.length);
   document.body.dataset.totalCents = String(total);
+  const shown = query.trim();
+  const matchnote = document.getElementById("matchnote");
+  const clearBtn = document.getElementById("q-clear");
+  if (shown) {
+    matchnote.hidden = false;
+    const word = rows.length === 1 ? "match" : "matches";
+    matchnote.textContent = "Showing " + rows.length + " " + word + " for \"" + shown + "\"";
+  } else {
+    matchnote.hidden = true;
+    matchnote.textContent = "";
+  }
+  if (clearBtn) clearBtn.hidden = !shown;
   document.getElementById("month-card").hidden = summary !== "";
   document.getElementById("payment-card").hidden = summary !== "";
   document.getElementById("summary-card").hidden = summary === "";
@@ -1312,7 +1425,8 @@ function render() {
   payments.replaceChildren(phead, pbody);
 
   const sortLabel = document.getElementById("sort").selectedOptions[0].textContent;
-  const searchNote = query.trim() ? " Search: " + query.trim() + "." : "";
+  const searchWord = rows.length === 1 ? "match" : "matches";
+  const searchNote = query.trim() ? " Showing " + rows.length + " " + searchWord + " for \"" + query.trim() + "\"." : "";
   const summaryNote = summary ? " Summary: " + SUMMARY_LABEL[summary] + "." : " Sorted by " + sortLabel + ".";
   document.getElementById("printmeta").textContent =
     "View: " + VIEW_LABEL[mailboxScope()] + ". " + rows.length + " payments. Total received " + money(total) + "." + searchNote + summaryNote;
@@ -1394,7 +1508,24 @@ yearSelect.addEventListener("change", event => { drill = null; yearPick = event.
 document.getElementById("month-pick").addEventListener("change", event => { drill = null; monthPick = event.target.value; render(); });
 document.getElementById("rep-pick").addEventListener("change", event => { drill = null; repPick = event.target.value; render(); });
 document.getElementById("company-pick").addEventListener("change", event => { drill = null; companyPick = event.target.value; render(); });
-document.getElementById("q").addEventListener("input", event => { drill = null; query = event.target.value; render(); });
+const qInput = document.getElementById("q");
+function applyQuery(value) {
+  query = value;
+  if (qInput.value !== value) qInput.value = value;
+  render();
+}
+qInput.addEventListener("input", event => { applyQuery(event.target.value); });
+qInput.addEventListener("search", event => { applyQuery(event.target.value); });
+qInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    applyQuery(event.target.value);
+  }
+});
+document.getElementById("q-clear").addEventListener("click", () => {
+  applyQuery("");
+  qInput.focus();
+});
 document.getElementById("sort").addEventListener("change", event => { sort = event.target.value; render(); });
 document.getElementById("print").addEventListener("click", () => window.print());
 
