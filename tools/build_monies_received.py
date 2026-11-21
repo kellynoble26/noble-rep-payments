@@ -202,7 +202,7 @@ REPORT_HTML = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Monies Received 2026</title>
+<title>Receipts and Reps</title>
 <style>
 @page { size: letter; margin: 0.45in; }
 * { box-sizing: border-box; }
@@ -384,7 +384,7 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
     <div class="brand">
       <span class="logo-badge"><img src="__LOGO_SRC__" alt="Noble" height="56"></span>
       <div>
-        <h1>Monies Received</h1>
+        <h1>Receipts and Reps</h1>
         <p class="subhead">Updated 11/17/2026 · 01/01/2026 through 11/17/2026 (Arizona time)</p>
       </div>
     </div>
@@ -396,7 +396,7 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
 </header>
 <main class="wrap">
   <div class="printonly">
-    <h1>Monies Received</h1>
+    <h1>Receipts and Reps</h1>
     <p>Noble General Contracting (GC) and Noble Windows &amp; Doors (WD). Updated 11/17/2026. 01/01/2026 through 11/17/2026 (Arizona time).</p>
     <p id="printmeta"></p>
   </div>
@@ -408,7 +408,7 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
     </div>
     <div class="seg" role="group" aria-label="Summary">
       <button type="button" data-summary="ytd" aria-pressed="false">Year-to-Date</button>
-      <button type="button" data-summary="year" aria-pressed="false">By Year</button>
+      <button type="button" data-summary="year" aria-pressed="false">Year</button>
       <button type="button" data-summary="month" aria-pressed="false">By Month</button>
       <button type="button" data-summary="rep" aria-pressed="false">By Rep</button>
       <button type="button" data-summary="company" aria-pressed="false">By Company</button>
@@ -529,7 +529,7 @@ let sort = "date-asc";
 let summary = "";
 const SUMMARY_LABEL = {
   ytd: "Year-to-Date",
-  year: "By Year",
+  year: "Year",
   month: "By Month",
   rep: "By Rep",
   company: "By Company",
@@ -567,7 +567,7 @@ function selected() {
 
 function sum(rows) { return rows.reduce((n, row) => n + row.amountCents, 0); }
 
-function makeTable(headers, lines) {
+function makeTable(headers, lines, emptyText) {
   const wrap = el("div", "scroll");
   const table = el("table");
   const head = el("thead");
@@ -577,7 +577,7 @@ function makeTable(headers, lines) {
   const body = el("tbody");
   if (!lines.length) {
     const tr = el("tr");
-    const td = el("td", "empty", "No payments in this view.");
+    const td = el("td", "empty", emptyText || "No payments in this view.");
     td.colSpan = headers.length;
     tr.append(td);
     body.append(tr);
@@ -592,9 +592,9 @@ function makeTable(headers, lines) {
   return wrap;
 }
 
-function summaryTable(headers, lines) {
+function summaryTable(headers, lines, emptyText) {
   const block = el("div", "summary-block");
-  block.append(makeTable(headers, lines));
+  block.append(makeTable(headers, lines, emptyText));
   document.getElementById("summary-body").append(block);
 }
 
@@ -663,7 +663,8 @@ function renderSummary(rows, total) {
       return { cells: [year, String(bucket.n), money(bucket.total)] };
     });
     if (lines.length) lines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
-    summaryTable(["Year", "Payments", "Total"], lines);
+    if (!lines.length && yearPick !== "all") note.textContent = "No data yet for this year.";
+    summaryTable(["Year", "Payments", "Total"], lines, "No data yet for this year.");
     return;
   }
   if (summary === "month") {
@@ -919,7 +920,7 @@ let companyPick = "all";
 const yearSelect = document.getElementById("year-pick");
 yearSelect.append(el("option", "", "All"));
 yearSelect.lastChild.value = "all";
-[...new Set(PAYMENTS.map(row => row.when.slice(0, 4)))].sort().forEach(year => {
+["2024", "2025", "2026", "2027"].forEach(year => {
   const option = el("option", "", year);
   option.value = year;
   yearSelect.append(option);
