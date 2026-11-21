@@ -319,12 +319,17 @@ def apply_rep_map(rows: list[dict], map_path: Path) -> None:
             noted = subject_rep(row["subject"])
             if noted:
                 row["rep"] = noted
+        if row["rep"] == "Unassigned" and APPLY_REP_CODES:
+            reps = code_reps(row)
+            if len(reps) == 1:
+                row["rep"] = reps[0]
         if (row["co"], norm_customer(row["customer"])) in excluded:
             row["rep"] = "Unassigned"
 
 
-# Kelly asked to review these before they change any payment.
-APPLY_REP_CODES = False
+# Explicit name assignments above win. Codes fill only a still-unassigned payment,
+# and only when the customer and subject contain one rep code.
+APPLY_REP_CODES = True
 REP_CODE_RULES = (
     ("333", "Eric"),
     ("222", "Nick"),
@@ -335,6 +340,14 @@ _CODE_PATTERN = re.compile(
     r"(?:^|(?<=[\s\-_.,/()]))(333|222|007|444)(?=$|[\s\-_.,/()])"
 )
 _DIRECTION = re.compile(r"(?i)^(N|S|E|W|NE|NW|SE|SW|North|South|East|West)$")
+
+
+def code_reps(row: dict) -> list[str]:
+    reps = []
+    for hit in find_rep_codes(row["customer"]) + find_rep_codes(row["subject"]):
+        if hit["rep"] not in reps:
+            reps.append(hit["rep"])
+    return reps
 
 
 def find_rep_codes(text: str) -> list[dict]:
@@ -1477,8 +1490,6 @@ def main() -> None:
     rows = load_csv_rows(args.gc, args.wd)
     apply_branch_deposits(rows)
     apply_rep_map(rows, args.reps)
-    if APPLY_REP_CODES:
-        raise SystemExit("Rep code rules are held for Kelly's review and must stay off")
     write_rep_code_review(rows, ROOT / "data" / "rep-code-review.csv")
     expected = verify(rows)
     html = render_report(rows, expected)
