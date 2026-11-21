@@ -31,9 +31,9 @@ ITERATIONS = 2_000_000
 
 # Figures printed on the workbook Summary tab. The builder refuses to
 # write a page unless the payment rows add up to these exactly.
-EXPECTED_ALL = (421, 401_678_340)  # count, cents
+EXPECTED_ALL = (422, 402_353_340)  # count, cents
 EXPECTED_CO = {
-    "GC": (221, 242_203_413),
+    "GC": (222, 242_878_413),
     "WD": (200, 159_474_927),
 }
 EXPECTED_MONTHS = {
@@ -47,7 +47,7 @@ EXPECTED_MONTHS = {
     "2026-08": {"GC": 17_474_882, "WD": 17_324_080},
     "2026-09": {"GC": 17_346_998, "WD": 13_788_027},
     "2026-10": {"GC": 25_254_756, "WD": 17_169_972},
-    "2026-11": {"GC": 9_424_543, "WD": 16_805_171},
+    "2026-11": {"GC": 10_099_543, "WD": 16_805_171},
 }
 
 LONG_DIGITS = re.compile(r"\d{7,}")
