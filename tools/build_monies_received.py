@@ -629,6 +629,7 @@ label.search input { width: 100%; }
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,.08);
+  border-top: 4px solid #1f4e79;
 }
 .stat { padding: 16px 18px; }
 .stat .k {
@@ -662,23 +663,40 @@ th {
   white-space: nowrap;
 }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.co { font-weight: 700; color: #1f4e79; white-space: nowrap; }
-tr.total td { background: #f5f5f4; font-weight: 700; }
-tbody tr:hover td { background: #fafaf9; }
-tr.total:hover td, tr.total td { background: #f5f5f4; }
+.co {
+  display: inline-block;
+  background: #1f4e79;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.4;
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+tbody tr:nth-child(even) td { background: #f4f7fb; }
+tr.total td { background: #d9e4f0; color: #1f4e79; font-weight: 700; }
+tbody tr:hover td { background: #e7eef5; }
+tr.total:hover td { background: #d9e4f0; }
+a, a:hover, a:focus, a:visited,
+button.drill, button.drill:hover, button.drill:focus, button.drill:active,
+button.back, button.back:hover, button.back:focus, button.back:active {
+  text-decoration: none;
+}
 button.drill, button.back {
   font: inherit;
   font-weight: inherit;
   color: #1f4e79;
-  background: none;
+  background: transparent;
   border: 0;
-  padding: 0;
+  padding: 0 2px;
   cursor: pointer;
   text-align: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  border-radius: 4px;
 }
-button.back { font-weight: 700; margin: 0 0 10px; }
+button.drill:hover, button.back:hover { color: #163a5c; background: #e7eef5; }
+button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
 .subject { min-width: 220px; }
 .empty { color: #57534e; padding: 12px 4px; }
 .note { margin: 0 0 8px; color: #444; }
@@ -710,8 +728,13 @@ button.back { font-weight: 700; margin: 0 0 10px; }
   .wrap { max-width: none; padding: 0; }
   .stat, .card { box-shadow: none; border-radius: 0; }
   .stats { gap: 0; }
-  .stat { border: 1px solid #d6d3d1; }
-  a, button.drill { color: inherit; text-decoration: none; }
+  .stat { border: 1px solid #d6d3d1; border-top: 3px solid #1f4e79; }
+  a, a:hover, a:visited, button.drill, button.drill:hover, button.back, button.back:hover {
+    color: inherit;
+    text-decoration: none;
+    background: transparent;
+  }
+  .co, th, tr.total td { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   table { font-size: 10.5px; }
   th, td { padding: 3px 4px; }
   th { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -955,11 +978,14 @@ function makeTable(headers, lines, emptyText) {
     line.cells.forEach((value, i) => {
       const td = el("td", i ? "num" : "");
       const spec = line.drills && line.drills[i];
+      const badge = headers[i] === "GC/WD" && (value === "GC" || value === "WD");
       if (spec) {
         const button = el("button", "drill", value);
         button.type = "button";
         button.addEventListener("click", () => openDrill(spec));
         td.append(button);
+      } else if (badge) {
+        td.append(el("span", "co", value));
       } else {
         td.textContent = value;
       }
@@ -1259,7 +1285,9 @@ function render() {
   }
   for (const row of rows) {
     const tr = el("tr");
-    tr.append(el("td", "co", row.co));
+    const mailboxCell = el("td", "");
+    mailboxCell.append(el("span", "co", row.co));
+    tr.append(mailboxCell);
     tr.append(el("td", "", row.whenText));
     tr.append(el("td", "", row.customer));
     tr.append(el("td", "", row.invoice));
