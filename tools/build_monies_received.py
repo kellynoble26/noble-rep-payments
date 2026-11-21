@@ -216,6 +216,26 @@ def norm_customer(value: str) -> str:
     return " ".join(value.split())
 
 
+SUBJECT_REP = re.compile(r"Rep:\s*([A-Za-z]+)\s*\((\d+)\)")
+REP_CODES = {
+    "222": "Nick",
+    "333": "Eric",
+    "007": "George",
+    "444": "Christian",
+    "555": "Daniel",
+}
+
+
+def subject_rep(subject: str) -> str | None:
+    match = SUBJECT_REP.search(subject)
+    if not match:
+        return None
+    name, code = match.group(1), match.group(2)
+    if REP_CODES.get(code) != name:
+        return None
+    return name
+
+
 def apply_rep_map(rows: list[dict], map_path: Path) -> None:
     assigned: dict[tuple[str, str], str] = {}
     confirmed: dict[tuple[str, str], str] = {}
@@ -247,11 +267,14 @@ def apply_rep_map(rows: list[dict], map_path: Path) -> None:
         exact = assigned.get((row["co"], row["customer"]))
         if exact:
             row["rep"] = exact
-            continue
-        if row["co"] == "GC":
+        elif row["co"] == "GC":
             row["rep"] = confirmed.get(("GC", norm_customer(row["customer"])), "Unassigned")
         else:
             row["rep"] = "Unassigned"
+        if row["rep"] == "Unassigned" and row["co"] == "WD":
+            noted = subject_rep(row["subject"])
+            if noted:
+                row["rep"] = noted
 
 
 def verify(rows: list[dict]) -> dict:
