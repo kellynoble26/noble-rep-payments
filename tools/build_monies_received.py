@@ -1338,7 +1338,7 @@ function render() {
   } else {
     mailbox.append(el("div", "k", "Mailbox"), el("div", "v", mailboxScope()), el("div", "s", COMPANY[mailboxScope()]));
   }
-  stats.append(mailbox);
+  if (!(shown && summary)) stats.append(mailbox);
 
   const byMonth = new Map();
   for (const row of rows) {
