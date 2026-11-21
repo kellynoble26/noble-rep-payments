@@ -18,6 +18,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
@@ -209,23 +210,48 @@ def rep_name(label: str) -> str:
     return match.group(1) if match else "Unassigned"
 
 
+def norm_customer(value: str) -> str:
+    value = unicodedata.normalize("NFKC", value).casefold()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+
 def apply_rep_map(rows: list[dict], map_path: Path) -> None:
     assigned: dict[tuple[str, str], str] = {}
+    confirmed: dict[tuple[str, str], str] = {}
     with map_path.open(newline="", encoding="utf-8") as handle:
         for rec in csv.DictReader(handle):
-            if rec["match_type"] not in {"exact", "fuzzy"}:
-                continue
             name = rep_name(rec["rep"])
-            for customer in [part.strip() for part in rec["report_customers"].split("|")]:
-                if not customer:
-                    continue
-                key = (rec["mailbox"], customer)
-                previous = assigned.get(key)
-                if previous and previous != name:
-                    raise SystemExit(f"Rep conflict for {key}: {previous} and {name}")
-                assigned[key] = name
+            customers = [part.strip() for part in (rec.get("report_customers") or "").split("|")]
+            if rec["match_type"] in {"exact", "fuzzy"}:
+                for customer in customers:
+                    if not customer:
+                        continue
+                    key = (rec["mailbox"], customer)
+                    previous = assigned.get(key)
+                    if previous and previous != name:
+                        raise SystemExit(f"Rep conflict for {key}: {previous} and {name}")
+                    assigned[key] = name
+            elif rec["match_type"] == "confirmed":
+                if rec["mailbox"] != "GC":
+                    raise SystemExit(f"Confirmed rep row is not GC: {rec['rep_file_customer']}")
+                for customer in [rec["rep_file_customer"], *customers]:
+                    if not customer:
+                        continue
+                    key = ("GC", norm_customer(customer))
+                    previous = confirmed.get(key)
+                    if previous and previous != name:
+                        raise SystemExit(f"Rep conflict for {key}: {previous} and {name}")
+                    confirmed[key] = name
     for row in rows:
-        row["rep"] = assigned.get((row["co"], row["customer"]), "Unassigned")
+        exact = assigned.get((row["co"], row["customer"]))
+        if exact:
+            row["rep"] = exact
+            continue
+        if row["co"] == "GC":
+            row["rep"] = confirmed.get(("GC", norm_customer(row["customer"])), "Unassigned")
+        else:
+            row["rep"] = "Unassigned"
 
 
 def verify(rows: list[dict]) -> dict:
