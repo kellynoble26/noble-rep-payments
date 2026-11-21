@@ -684,6 +684,9 @@ label.search input::-webkit-search-cancel-button { -webkit-appearance: none; app
   color: #1c1917;
 }
 .stat .s { margin-top: 6px; color: #8a837c; font-size: 13px; }
+.stats.compact { grid-template-columns: repeat(2, 1fr); }
+.stats.compact .stat { text-align: center; display: flex; flex-direction: column; justify-content: center; }
+.stats.compact .stat .v { font-size: 38px; }
 .split { display: flex; gap: 18px; margin-top: 8px; }
 .split .amt { display: block; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .split .s { margin-top: 2px; }
@@ -1316,13 +1319,16 @@ function render() {
 
   const stats = document.getElementById("stats");
   stats.replaceChildren();
+  const compact = Boolean(shown && summary);
+  stats.classList.toggle("compact", compact);
   const cards = [
     ["Payments", String(rows.length), VIEW_LABEL[mailboxScope()]],
     ["Total received", money(total), "Amount received"],
   ];
   for (const [k, v, s] of cards) {
     const card = el("article", "stat");
-    card.append(el("div", "k", k), el("div", "v", v), el("div", "s", s));
+    card.append(el("div", "k", k), el("div", "v", v));
+    if (!compact) card.append(el("div", "s", s));
     stats.append(card);
   }
   const mailbox = el("article", "stat");
@@ -1338,7 +1344,7 @@ function render() {
   } else {
     mailbox.append(el("div", "k", "Mailbox"), el("div", "v", mailboxScope()), el("div", "s", COMPANY[mailboxScope()]));
   }
-  if (!(shown && summary)) stats.append(mailbox);
+  if (!compact) stats.append(mailbox);
 
   const byMonth = new Map();
   for (const row of rows) {
