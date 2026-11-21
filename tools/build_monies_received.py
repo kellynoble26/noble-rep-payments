@@ -250,27 +250,37 @@ def load_exclusions(path: Path) -> set[tuple[str, str]]:
     return excluded
 
 
+def standalone_token(text: str, token: str) -> bool:
+    if not text or not token:
+        return False
+    if norm_customer(text) == norm_customer(token):
+        return True
+    pattern = rf"(?:^|[\s\-_.,/()]){re.escape(token)}(?:$|[\s\-_.,/()])"
+    return re.search(pattern, text, re.IGNORECASE) is not None
+
+
 def apply_rep_map(rows: list[dict], map_path: Path) -> None:
     assigned: dict[tuple[str, str], str] = {}
     confirmed: dict[tuple[str, str], str] = {}
+    variants: list[tuple[str, str, str]] = []
     excluded = load_exclusions(map_path.parent / "excluded-customers.csv")
     with map_path.open(newline="", encoding="utf-8") as handle:
         for rec in csv.DictReader(handle):
             name = rep_name(rec["rep"])
             customers = [part.strip() for part in (rec.get("report_customers") or "").split("|")]
+            mailbox = rec["mailbox"]
             if rec["match_type"] in {"exact", "fuzzy"}:
                 for customer in customers:
                     if not customer:
                         continue
-                    if (rec["mailbox"], norm_customer(customer)) in excluded:
+                    if (mailbox, norm_customer(customer)) in excluded:
                         raise SystemExit(f"Refusing to assign excluded customer {customer}")
-                    key = (rec["mailbox"], customer)
+                    key = (mailbox, customer)
                     previous = assigned.get(key)
                     if previous and previous != name:
                         raise SystemExit(f"Rep conflict for {key}: {previous} and {name}")
                     assigned[key] = name
             elif rec["match_type"] == "confirmed":
-                mailbox = rec["mailbox"]
                 if mailbox not in {"GC", "WD"}:
                     raise SystemExit(f"Confirmed rep row has no mailbox: {rec['rep_file_customer']}")
                 for customer in [rec["rep_file_customer"], *customers]:
@@ -283,18 +293,155 @@ def apply_rep_map(rows: list[dict], map_path: Path) -> None:
                     if previous and previous != name:
                         raise SystemExit(f"Rep conflict for {key}: {previous} and {name}")
                     confirmed[key] = name
+            elif rec["match_type"] == "variant":
+                if mailbox not in {"GC", "WD"}:
+                    raise SystemExit(f"Variant rep row has no mailbox: {rec['rep_file_customer']}")
+                for token in customers:
+                    if token:
+                        variants.append((mailbox, token, name))
+    variants.sort(key=lambda item: len(item[1]), reverse=True)
     for row in rows:
         exact = assigned.get((row["co"], row["customer"]))
         if exact:
             row["rep"] = exact
         else:
             row["rep"] = confirmed.get((row["co"], norm_customer(row["customer"])), "Unassigned")
+        if row["rep"] == "Unassigned":
+            chosen = ""
+            for mailbox, token, name in variants:
+                if mailbox == row["co"] and standalone_token(row["customer"], token):
+                    if chosen and chosen != name:
+                        raise SystemExit(f"Variant rep conflict for {row['customer']}: {chosen} and {name}")
+                    chosen = name
+            if chosen:
+                row["rep"] = chosen
         if row["rep"] == "Unassigned" and row["co"] == "WD":
             noted = subject_rep(row["subject"])
             if noted:
                 row["rep"] = noted
         if (row["co"], norm_customer(row["customer"])) in excluded:
             row["rep"] = "Unassigned"
+
+
+# Kelly asked to review these before they change any payment.
+APPLY_REP_CODES = False
+REP_CODE_RULES = (
+    ("333", "Eric"),
+    ("222", "Nick"),
+    ("007", "George"),
+    ("444", "Christian"),
+)
+_CODE_PATTERN = re.compile(
+    r"(?:^|(?<=[\s\-_.,/()]))(333|222|007|444)(?=$|[\s\-_.,/()])"
+)
+_DIRECTION = re.compile(r"(?i)^(N|S|E|W|NE|NW|SE|SW|North|South|East|West)$")
+
+
+def find_rep_codes(text: str) -> list[dict]:
+    hits = []
+    if not text:
+        return hits
+    names = dict(REP_CODE_RULES)
+    for match in _CODE_PATTERN.finditer(text):
+        code = match.group(1)
+        before = text[: match.start()]
+        after = text[match.end() :]
+        before_token = re.search(r"([A-Za-z]+)[\s\-_.,/()]*$", before)
+        after_token = re.match(r"[\s\-_.,/()]*([A-Za-z]+)", after)
+        street = bool(before_token and _DIRECTION.match(before_token.group(1))) or bool(
+            after_token and _DIRECTION.match(after_token.group(1))
+        )
+        hits.append({
+            "code": code,
+            "rep": names[code],
+            "street": street,
+            "snippet": text[max(0, match.start() - 18): match.end() + 18],
+        })
+    return hits
+
+
+def write_rep_code_review(rows: list[dict], path: Path) -> None:
+    review = []
+    for row in rows:
+        hits = find_rep_codes(row["customer"]) + find_rep_codes(row["subject"])
+        if not hits:
+            continue
+        codes = []
+        reps = []
+        streets = []
+        snippets = []
+        for hit in hits:
+            if hit["code"] not in codes:
+                codes.append(hit["code"])
+                reps.append(hit["rep"])
+            if hit["street"]:
+                streets.append(hit["snippet"])
+            snippets.append(hit["snippet"])
+        unique_reps = []
+        for name in reps:
+            if name not in unique_reps:
+                unique_reps.append(name)
+        proposed = " | ".join(unique_reps)
+        flags = []
+        if len(unique_reps) > 1:
+            flags.append("two_codes")
+        if streets:
+            flags.append("possible_street")
+        disagrees = row["rep"] != "Unassigned" and proposed != row["rep"]
+        if disagrees:
+            flags.append("disagrees")
+        would_assign = row["rep"] == "Unassigned"
+        if not (would_assign or disagrees or "two_codes" in flags or "possible_street" in flags):
+            continue
+        review.append({
+            "mailbox": row["co"],
+            "date": row["whenText"],
+            "customer": row["customer"],
+            "amount": f"{row['amountCents'] / 100:.2f}",
+            "current_rep": row["rep"],
+            "matched_codes": " | ".join(codes),
+            "proposed_rep": proposed,
+            "flags": "; ".join(flags),
+            "evidence": " | ".join(snippets),
+        })
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=[
+            "mailbox", "date", "customer", "amount", "current_rep",
+            "matched_codes", "proposed_rep", "flags", "evidence",
+        ])
+        writer.writeheader()
+        writer.writerows(review)
+
+
+def apply_branch_deposits(rows: list[dict]) -> None:
+    fixes = {
+        ("GC", "2026-04-16T11:18", 714500): (
+            "Lake Pleasant",
+            "Check #118237 (branch deposit)",
+        ),
+        ("GC", "2026-04-30T09:10", 10524750): (
+            "Desert Cove Nursing (paid by Chandler Unified Medical Investors)",
+            "Check #28055 (branch deposit)",
+        ),
+    }
+    found = set()
+    for row in rows:
+        key = (row["co"], row["when"], row["amountCents"])
+        if key not in fixes:
+            continue
+        customer, method = fixes[key]
+        if row["customer"] not in {"", customer}:
+            raise SystemExit(f"Branch deposit customer is {row['customer']!r}")
+        row["customer"] = customer
+        row["method"] = method
+        for blob in (customer, method):
+            if SENSITIVE.search(blob) or LONG_DIGITS.search(blob):
+                raise SystemExit(f"Branch deposit correction looks sensitive: {blob}")
+        found.add(key)
+    missing = set(fixes) - found
+    if missing:
+        raise SystemExit(f"Branch deposits not found: {missing}")
 
 
 def verify(rows: list[dict]) -> dict:
@@ -588,7 +735,7 @@ button.back { font-weight: 700; margin: 0 0 10px; }
       <button type="button" data-summary="overview" aria-pressed="true">Summary</button>
     </div>
     <div class="seg" role="group" aria-label="Mailbox">
-      <button type="button" data-view="all" aria-pressed="true">All</button>
+      <button type="button" data-view="all" aria-pressed="false">All</button>
       <button type="button" data-view="GC" aria-pressed="false">GC only</button>
       <button type="button" data-view="WD" aria-pressed="false">WD only</button>
     </div>
@@ -732,10 +879,15 @@ function repGroups(rows) {
   });
 }
 
+function mailboxScope() {
+  if (summary && companyPick !== "all") return companyPick;
+  return view;
+}
+
 function selected() {
   const q = query.trim().toLowerCase();
-  let rows = PAYMENTS.filter(row => view === "all" || row.co === view);
-  if (summary === "company" && companyPick !== "all") rows = rows.filter(row => row.co === companyPick);
+  const scope = mailboxScope();
+  let rows = PAYMENTS.filter(row => scope === "all" || row.co === scope);
   if (summary === "rep" && repPick !== "all") rows = rows.filter(row => repOf(row) === repPick);
   if (summary === "month" && monthPick !== "all") rows = rows.filter(row => String(Number(row.when.slice(5, 7))) === monthPick);
   if (summary === "year" && yearPick !== "all") rows = rows.filter(row => row.when.slice(0, 4) === yearPick);
@@ -897,11 +1049,11 @@ function renderSummary(rows, total) {
   document.getElementById("summary-body").replaceChildren();
   title.textContent = SUMMARY_LABEL[summary];
   if (summary === "ytd") {
-    note.textContent = "__RANGE__ (Arizona time). " + VIEW_LABEL[view] + ".";
+    note.textContent = "__RANGE__ (Arizona time). " + VIEW_LABEL[mailboxScope()] + ".";
     const gc = rows.filter(row => row.co === "GC");
     const wd = rows.filter(row => row.co === "WD");
-    const lines = [totalLine(VIEW_LABEL[view], rows)];
-    if (view === "all") {
+    const lines = [totalLine(VIEW_LABEL[mailboxScope()], rows)];
+    if (mailboxScope() === "all") {
       lines.unshift(totalLine("Noble General Contracting (GC)", gc));
       lines.splice(1, 0, totalLine("Noble Windows & Doors (WD)", wd));
       lines[2].total = true;
@@ -911,7 +1063,7 @@ function renderSummary(rows, total) {
   }
   if (summary === "year") {
     const yearName = yearPick === "all" ? "All years" : yearPick;
-    note.textContent = "Totals for each calendar year in these payments. " + VIEW_LABEL[view] + ". " + yearName + ".";
+    note.textContent = "Totals for each calendar year in these payments. " + VIEW_LABEL[mailboxScope()] + ". " + yearName + ".";
     const buckets = new Map();
     for (const row of rows) {
       const year = row.when.slice(0, 4);
@@ -928,7 +1080,7 @@ function renderSummary(rows, total) {
   }
   if (summary === "month") {
     const monthName = monthPick === "all" ? "All months" : document.getElementById("month-pick").selectedOptions[0].textContent;
-    note.textContent = "One row per month for " + VIEW_LABEL[view] + ". " + monthName + ". Count and amount received.";
+    note.textContent = "One row per month for " + VIEW_LABEL[mailboxScope()] + ". " + monthName + ". Count and amount received.";
     const buckets = new Map();
     for (const row of rows) {
       const ym = row.when.slice(0, 7);
@@ -944,17 +1096,18 @@ function renderSummary(rows, total) {
   }
   if (summary === "rep") {
     const repName = repPick === "all" ? "All reps" : repPick;
-    note.textContent = "Grouped by rep. " + VIEW_LABEL[view] + ". " + repName + ".";
+    note.textContent = "Grouped by rep. " + VIEW_LABEL[mailboxScope()] + ". " + repName + ".";
     const lines = repGroups(rows).map(group => totalLine(group.name, rows.filter(row => repOf(row) === group.name)));
     if (lines.length) lines.push(totalLine("Total", rows));
     summaryTable(["Rep", "Payments", "Total"], lines);
     return;
   }
   if (summary === "overview") {
-    note.textContent = "Company totals, rep totals, rep by month, and company by month. " + VIEW_LABEL[view] + ".";
+    note.textContent = "Company totals, rep totals, rep by month, and company by month. " + VIEW_LABEL[mailboxScope()] + ".";
     const companyRows = [];
-    if (view !== "WD") companyRows.push({ key: "GC", name: "Noble General Contracting" });
-    if (view !== "GC") companyRows.push({ key: "WD", name: "Noble Windows and Doors" });
+    const scope = mailboxScope();
+    if (scope !== "WD") companyRows.push({ key: "GC", name: "Noble General Contracting" });
+    if (scope !== "GC") companyRows.push({ key: "WD", name: "Noble Windows and Doors" });
     const companyLines = companyRows.map(item => totalLine(item.name, rows.filter(row => row.co === item.key)));
     if (companyLines.length) companyLines.push(totalLine("Total", rows));
     summaryBlock("Each company", ["Company", "Payments", "Total"], companyLines);
@@ -969,7 +1122,7 @@ function renderSummary(rows, total) {
     return;
   }
   const companyName = companyPick === "all" ? "All companies" : document.getElementById("company-pick").selectedOptions[0].textContent;
-  note.textContent = "Grouped by the Customer on each payment. " + VIEW_LABEL[view] + ". " + companyName + ".";
+  note.textContent = "Grouped by the Customer on each payment. " + VIEW_LABEL[mailboxScope()] + ". " + companyName + ".";
   const buckets = new Map();
   for (const row of rows) {
     const name = row.customer;
@@ -1007,13 +1160,13 @@ function render() {
   document.getElementById("year-filter").hidden = summary !== "year";
   document.getElementById("month-filter").hidden = summary !== "month";
   document.getElementById("rep-filter").hidden = summary !== "rep";
-  document.getElementById("company-filter").hidden = summary !== "company";
+  document.getElementById("company-filter").hidden = !summary;
   if (summary) renderSummary(rows, total);
 
   const stats = document.getElementById("stats");
   stats.replaceChildren();
   const cards = [
-    ["Payments", String(rows.length), VIEW_LABEL[view]],
+    ["Payments", String(rows.length), VIEW_LABEL[mailboxScope()]],
     ["Total received", money(total), "Amount received"],
   ];
   for (const [k, v, s] of cards) {
@@ -1022,7 +1175,7 @@ function render() {
     stats.append(card);
   }
   const mailbox = el("article", "stat");
-  if (view === "all") {
+  if (mailboxScope() === "all") {
     mailbox.append(el("div", "k", "By mailbox"));
     const split = el("div", "split");
     for (const [code, group] of [["GC", gc], ["WD", wd]]) {
@@ -1032,7 +1185,7 @@ function render() {
     }
     mailbox.append(split);
   } else {
-    mailbox.append(el("div", "k", "Mailbox"), el("div", "v", view), el("div", "s", COMPANY[view]));
+    mailbox.append(el("div", "k", "Mailbox"), el("div", "v", mailboxScope()), el("div", "s", COMPANY[mailboxScope()]));
   }
   stats.append(mailbox);
 
@@ -1047,7 +1200,7 @@ function render() {
   }
   const monthKeys = [...byMonth.keys()].sort();
   const months = document.getElementById("months");
-  const showSplit = view === "all";
+  const showSplit = mailboxScope() === "all";
   const head = el("thead");
   const hr = el("tr");
   const headers = showSplit
@@ -1122,7 +1275,24 @@ function render() {
   const searchNote = query.trim() ? " Search: " + query.trim() + "." : "";
   const summaryNote = summary ? " Summary: " + SUMMARY_LABEL[summary] + "." : " Sorted by " + sortLabel + ".";
   document.getElementById("printmeta").textContent =
-    "View: " + VIEW_LABEL[view] + ". " + rows.length + " payments. Total received " + money(total) + "." + searchNote + summaryNote;
+    "View: " + VIEW_LABEL[mailboxScope()] + ". " + rows.length + " payments. Total received " + money(total) + "." + searchNote + summaryNote;
+}
+
+function pressOnly(button) {
+  document.querySelectorAll("button[data-summary], button[data-view]").forEach(other => {
+    other.setAttribute("aria-pressed", other === button ? "true" : "false");
+  });
+}
+
+function clearPicks() {
+  yearPick = "all";
+  monthPick = "all";
+  repPick = "all";
+  companyPick = "all";
+  document.getElementById("year-pick").value = "all";
+  document.getElementById("month-pick").value = "all";
+  document.getElementById("rep-pick").value = "all";
+  document.getElementById("company-pick").value = "all";
 }
 
 document.querySelectorAll("button[data-view]").forEach(button => {
@@ -1130,12 +1300,8 @@ document.querySelectorAll("button[data-view]").forEach(button => {
     drill = null;
     view = button.dataset.view;
     summary = "";
-    document.querySelectorAll("[data-view]").forEach(other => {
-      other.setAttribute("aria-pressed", other === button ? "true" : "false");
-    });
-    document.querySelectorAll("[data-summary]").forEach(other => {
-      other.setAttribute("aria-pressed", "false");
-    });
+    clearPicks();
+    pressOnly(button);
     const hash = view === "all" ? "" : "#" + view.toLowerCase();
     try { history.replaceState(null, "", location.pathname + location.search + hash); } catch (err) {}
     render();
@@ -1144,9 +1310,8 @@ document.querySelectorAll("button[data-view]").forEach(button => {
 const hashView = location.hash.replace("#", "").toLowerCase();
 if (hashView === "gc" || hashView === "wd") {
   view = hashView.toUpperCase();
-  document.querySelectorAll("[data-view]").forEach(button => {
-    button.setAttribute("aria-pressed", button.dataset.view === view ? "true" : "false");
-  });
+  summary = "";
+  pressOnly(document.querySelector('button[data-view="' + view + '"]'));
 }
 const params = new URLSearchParams(location.search);
 if (params.get("q")) {
@@ -1159,39 +1324,17 @@ if (["date-asc", "date-desc", "amount-desc", "amount-asc"].includes(params.get("
 }
 if (["ytd", "year", "month", "rep", "company", "overview"].includes(params.get("summary"))) {
   summary = params.get("summary");
-  document.querySelectorAll("[data-summary]").forEach(button => {
-    button.setAttribute("aria-pressed", button.dataset.summary === summary ? "true" : "false");
-  });
+  view = "all";
+  pressOnly(document.querySelector('button[data-summary="' + summary + '"]'));
 }
-document.querySelectorAll("[data-summary]").forEach(button => {
+document.querySelectorAll("button[data-summary]").forEach(button => {
   button.addEventListener("click", () => {
-    if (button.dataset.summary === "overview") {
-      drill = null;
-      summary = "overview";
-      view = "all";
-      yearPick = "all";
-      monthPick = "all";
-      repPick = "all";
-      companyPick = "all";
-      document.getElementById("year-pick").value = "all";
-      document.getElementById("month-pick").value = "all";
-      document.getElementById("rep-pick").value = "all";
-      document.getElementById("company-pick").value = "all";
-      document.querySelectorAll("button[data-view]").forEach(other => {
-        other.setAttribute("aria-pressed", other.dataset.view === "all" ? "true" : "false");
-      });
-      document.querySelectorAll("[data-summary]").forEach(other => {
-        other.setAttribute("aria-pressed", other.dataset.summary === "overview" ? "true" : "false");
-      });
-      try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
-      render();
-      return;
-    }
     drill = null;
-    summary = summary === button.dataset.summary ? "" : button.dataset.summary;
-    document.querySelectorAll("[data-summary]").forEach(other => {
-      other.setAttribute("aria-pressed", other.dataset.summary === summary ? "true" : "false");
-    });
+    summary = button.dataset.summary;
+    view = "all";
+    clearPicks();
+    pressOnly(button);
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
     render();
   });
 });
@@ -1332,7 +1475,11 @@ def main() -> None:
     if not args.gc or not args.wd:
         parser.error("--gc and --wd payment CSVs are required")
     rows = load_csv_rows(args.gc, args.wd)
+    apply_branch_deposits(rows)
     apply_rep_map(rows, args.reps)
+    if APPLY_REP_CODES:
+        raise SystemExit("Rep code rules are held for Kelly's review and must stay off")
+    write_rep_code_review(rows, ROOT / "data" / "rep-code-review.csv")
     expected = verify(rows)
     html = render_report(rows, expected)
     out = ROOT / "received.html"

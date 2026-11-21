@@ -12,6 +12,7 @@ GC,6412 S. La Corta Tempe 85283 (Rebekah Wall),Nick (222),fuzzy,6412 S. La Corta
 GC,Adam Hawkins and Abigail Polito,Nick (222),exact,Adam Hawkins and Abigail Polito
 GC,Ali Soderman | 26-GC-Soderman-Flooring-4049 W Irma Ln,George (007),fuzzy,26-GC-Soderman-Flooring-4049 W Irma Ln
 GC,Amanda Goossen,Nick (222),exact,Amanda Goossen
+GC,"Amy Grulke, PLLC",Nick (222),variant,"Amy Grulke, PLLC | Amy Grulke | Grulke | Garulke | Amy Garulke",Kelly 11/20
 GC,Arbor Therepy,George (007),confirmed,Arbor Therepy | Arbor Therapy,Kelly confirmed 11/20
 GC,BBB Town Square,George (007),confirmed,BBB Town Square,Kelly confirmed 11/20
 GC,Blake Farrr,Nick (222),exact,Blake Farrr
@@ -24,10 +25,12 @@ GC,CAE Inc. | CAE Mesa Air,George (007),fuzzy,CAE Inc. | CAE Mesa Air
 GC,CAE Inc. | CAE Phoenix_2511-FTO-SAI- CAE - Phoenix,George (007),fuzzy,CAE Inc.
 GC,CAE Inc. | CAE SIMCOM,George (007),fuzzy,CAE Inc. | CAE SIMCOM
 GC,Chris Hake,George (007),exact,Chris Hake
+GC,Chris Haake / Haake / Hake,George (007),variant,"Chris Haake | Chris Hake | Haake | Hake | 26 - Exterior Labor - Chris Hake - 007 - 4950 N 46th st phoenix , Arizona 85018 | 26-Paint and Electrical-Chris Hake_007-4950 N 46th St.","Kelly confirmed 11/20: all Haake/Hake variants"
 GC,Christian Burwash,Nick (222),exact,Christian Burwash
-GC,Daniel and Breanna Roberts,Nick (222),exact,Daniel and Breanna Roberts
+GC,Daniel and Breanna Roberts,Nick (222),variant,Daniel Roberts | Breanna Roberts | Daniel and Breanna Roberts | 26-Kitchen Remodel-Daniel & Breanna Roberts-222-GC-4002 E. Osborn St | Roberts,Kelly 11/20: all Roberts = Nick
 GC,Danielle Wheelis,George (007),exact,Danielle Wheelis
 GC,Deanna Phillips,Nick (222),confirmed,Deanna Phillips,Kelly confirmed 11/20
+GC,Desert Cove Nursing (paid by Chandler Unified Medical Investors),Christian (444),confirmed,Desert Cove Nursing (paid by Chandler Unified Medical Investors),Kelly 11/20: Desert Cove Nursing Center = 444 Christian
 GC,Derek Budimier,Nick (222),exact,Derek Budimier
 GC,Dewayne Adamson,Nick (222),exact,Dewayne Adamson
 GC,Doug Bingham   (FAA Falcon Air Field),Nick (222),fuzzy,Doug Bingham
@@ -42,12 +45,13 @@ GC,Hall Bath Project - Orlando Aquino,Nick (222),exact,Hall Bath Project - Orlan
 GC,"Helios Modern Pilates, LLC",Christian (444),exact,"Helios Modern Pilates, LLC"
 GC,Hunter Handley,George (007),exact,Hunter Handley
 GC,Ingrid Wiegand | Ingrid Wiegand #1,Nick (222),fuzzy,Ingrid Wiegand #1
-GC,iSearch Decor - Alicia Guerrieri | Mosher Residence,George (007),fuzzy,Mosher Residence
+GC,iSearch Decor - Alicia Guerrieri | Mosher Residence,George (007),variant,Mosher | Mosier | Mosher Residence | 26-GC-Mosher Residence Remodel-Library Rm-007,Kelly 11/20: Mosher/Mosier = George
 GC,jana Foreman,Nick (222),exact,jana Foreman
 GC,Jayce & Kennedy Dalmolin/ Serv Pro,George (007),confirmed,Jayce & Kennedy Dalmolin/ Serv Pro | Kennedy Delaman,Kelly confirmed 11/20
 GC,Jesse Keenan,George (007),exact,Jesse Keenan
 GC,Joe Murphy,Nick (222),exact,Joe Murphy
 GC,Joseph Murphy,Nick (222),exact,Joseph Murphy
+GC,Jody Greco,Nick (222),confirmed,26 - GC - 222 - Jody Greco - Casita Bath | Jody Greco,Kelly confirmed 11/20
 GC,JR ELECTRICAL SERVICE,Nick (222),exact,JR ELECTRICAL SERVICE
 GC,Karen Kendall,George (007),exact,Karen Kendall
 GC,Katherine Heuerman,Nick (222),exact,Katherine Heuerman
@@ -57,11 +61,12 @@ GC,Kevin Wright,Nick (222),exact,Kevin Wright
 GC,Kim and Paul Versage,George (007),confirmed,Kim and Paul Versage,Kelly confirmed 11/20
 GC,Kyle Wesley,Nick (222),exact,Kyle Wesley
 GC,Lake Pleasant Harbor,George (007),confirmed,Lake Pleasant Harbor,Kelly confirmed 11/20
+GC,Lake Pleasant,George (007),confirmed,Lake Pleasant,Kelly 11/20: Lake Pleasant deposit = George
 GC,Lara Sosnow | Lara Sosnow #2 Master Bath,Nick (222),fuzzy,Lara Sosnow #2 Master Bath
 GC,Leanne Corbisello,George (007),exact,Leanne Corbisello
 GC,Love Pool Care Paul Meister,George (007),exact,Love Pool Care Paul Meister
 GC,Margie & Steve Kerr,Nick (222),confirmed,Margie & Steve Kerr,Kelly confirmed 11/20
-GC,Marina Lamb | 26-GC-LAMB-TUCCI SUNSHADE,George (007),fuzzy,26-GC-LAMB-TUCCI SUNSHADE
+GC,Marina Lamb | 26-GC-LAMB-TUCCI SUNSHADE,George (007),variant,Lamb | Marina Lamb | Tom Lamb | 26-GC-LAMB-TUCCI SUNSHADE | 26-Marina Lamb - MISC Services - 6001 N 38th Pl Paradise Valley_007,Kelly 11/20: all Lamb = George
 GC,Mark Kampf,Nick (222),exact,Mark Kampf
 GC,Marlene Greenburg,Nick (222),confirmed,Marlene Greenburg,Kelly confirmed 11/20
 GC,Mike Connelly,George (007),exact,Mike Connelly
@@ -73,7 +78,7 @@ GC,Orlando Aquino,Nick (222),exact,Orlando Aquino
 GC,Palm Canyon,George (007),exact,Palm Canyon
 GC,Palmyre J louvain Dalous,George (007),exact,Palmyre J louvain Dalous
 GC,Pamela Kipnes,George (007),confirmed,Pamela Kipnes,Kelly confirmed 11/20
-GC,Ralph Titus,George (007),exact,Ralph Titus
+GC,Ralph Titus,George (007),confirmed,Ralph Titus | Ralph,Kelly 11/20: Ralph = Ralph Titus, George
 GC,Reach Family Services (Bank Conversion),George (007),fuzzy,Reach Family Services
 GC,Rebekah Wall,Nick (222),exact,Rebekah Wall
 GC,Reggie Heywood,George (007),exact,Reggie Heywood
@@ -84,6 +89,7 @@ GC,Scott Phillips,Nick (222),confirmed,Scott Phillips,Kelly confirmed 11/20
 GC,Sharlene and Keith Carney,Nick (222),exact,Sharlene and Keith Carney
 GC,Stacy Weber,George (007),exact,Stacy Weber
 GC,Stanislov Sazonov,Nick (222),exact,Stanislov Sazonov
+GC,Suntex / Suntek / Suntech,Christian (444),variant,Suntex | Suntek | Suntech | 26-GC-Suntex Canyon Lake Bathroom HVAC Replacement-16802 AZ Hwy 88-444,Kelly 11/20: all Suntex = Christian
 GC,Steve & Jodine De Laveaga | 26 - Steve & Jodine De Laveaga #1,Nick (222),fuzzy,26 - Steve & Jodine De Laveaga #1
 GC,Steve Veit | Steve Veit #2- E. Bella Vista,George (007),fuzzy,Steve Veit #2- E. Bella Vista
 GC,Therapez,George (007),exact,Therapez
@@ -149,6 +155,7 @@ WD,BANK CONVERSION NGC,Eric (George),fuzzy,BANK CONVERSION,"Kelly override 11/20
 WD,HARR-JACKLIN DR,Eric (333),exact,HARR-JACKLIN DR
 WD,W/D-26-FADUL NGC,Eric (George),fuzzy,W/D-26-FADUL,"Kelly override 11/20: Eric ordered material, George true rep"
 WD,W/D-26-LAKE PLEASANT NGC,Eric (George),fuzzy,W/D-26-LAKE PLEASANT,"Kelly override 11/20: Eric ordered material, George true rep"
+WD,26-WD-NOBLE GC-MOSHER-DOORS-333,Eric (George),exact,26-WD-NOBLE GC-MOSHER-DOORS-333,"Kelly 11/20: Eric ordered, George true rep"
 WD,"Gin Luxe, LLC. Ginny Burroughs",Eric (333),confirmed,"Gin Luxe, LLC | Ginny Burroughs",Kelly confirmed 11/20
 WD,WD-25-DENEKE,Daniel (555),exact,WD-25-DENEKE
 WD,WD-25-GARVEY,Eric (333),exact,WD-25-GARVEY
