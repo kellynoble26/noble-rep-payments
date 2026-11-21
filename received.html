@@ -724,6 +724,27 @@ if (["ytd", "year", "month", "rep", "company", "overview"].includes(params.get("
 }
 document.querySelectorAll("[data-summary]").forEach(button => {
   button.addEventListener("click", () => {
+    if (button.dataset.summary === "overview") {
+      summary = "overview";
+      view = "all";
+      yearPick = "all";
+      monthPick = "all";
+      repPick = "all";
+      companyPick = "all";
+      document.getElementById("year-pick").value = "all";
+      document.getElementById("month-pick").value = "all";
+      document.getElementById("rep-pick").value = "all";
+      document.getElementById("company-pick").value = "all";
+      document.querySelectorAll("button[data-view]").forEach(other => {
+        other.setAttribute("aria-pressed", other.dataset.view === "all" ? "true" : "false");
+      });
+      document.querySelectorAll("[data-summary]").forEach(other => {
+        other.setAttribute("aria-pressed", other.dataset.summary === "overview" ? "true" : "false");
+      });
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
+      render();
+      return;
+    }
     summary = summary === button.dataset.summary ? "" : button.dataset.summary;
     document.querySelectorAll("[data-summary]").forEach(other => {
       other.setAttribute("aria-pressed", other.dataset.summary === summary ? "true" : "false");
