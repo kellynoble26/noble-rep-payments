@@ -732,7 +732,7 @@ button.back { font-weight: 700; margin: 0 0 10px; }
       </div>
     </div>
     <div class="actions noprint">
-      <a href="index.html">REP Payment Sheet</a>
+      <a href="https://kellynoble26.github.io/noble-rep-payments/index.html" target="_blank" rel="noopener noreferrer">REP Payment Sheet</a>
       <button type="button" id="print">Print</button>
     </div>
   </div>
@@ -1401,7 +1401,7 @@ iframe.ledger{border:0;position:fixed;inset:0;width:100%;height:100%;background:
 <body><form class="box" id="f" autocomplete="off"><h1>Monies Received 2026</h1>
 <input id="p" type="password" inputmode="numeric" maxlength="4" placeholder="Passcode" autocomplete="off" autofocus aria-label="Passcode">
 <button id="b" type="submit">Open</button><div id="msg"></div>
-<a class="alt" href="index.html">REP Payment Sheet</a></form>
+<a class="alt" href="https://kellynoble26.github.io/noble-rep-payments/index.html" target="_blank" rel="noopener noreferrer">REP Payment Sheet</a></form>
 <script>
 const S="__SALT__",V="__IV__",I=__ITERATIONS__,D="__DATA__";
 const u=s=>Uint8Array.from(atob(s),ch=>ch.charCodeAt(0));
@@ -1417,7 +1417,7 @@ const frame=document.createElement('iframe');
 frame.className='ledger';frame.title='Monies Received';frame.src=url;
 frame.style.top='36px';frame.style.height='calc(100% - 36px)';
 const bar=document.createElement('div');bar.className='switch';
-bar.innerHTML='<a href="index.html">REP Payment Sheet</a>';
+bar.innerHTML='<a href="https://kellynoble26.github.io/noble-rep-payments/index.html" target="_blank" rel="noopener noreferrer">REP Payment Sheet</a>';
 document.body.replaceChildren(bar, frame);
 }catch(err){m.style.color='#b91c1c';m.textContent='Incorrect passcode';b.disabled=false;p.value='';p.focus();}});
 </script></body></html>
