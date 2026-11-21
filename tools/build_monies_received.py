@@ -236,9 +236,24 @@ def subject_rep(subject: str) -> str | None:
     return name
 
 
+def load_exclusions(path: Path) -> set[tuple[str, str]]:
+    excluded: set[tuple[str, str]] = set()
+    if not path.exists():
+        return excluded
+    with path.open(newline="", encoding="utf-8") as handle:
+        for rec in csv.DictReader(handle):
+            mailbox = (rec.get("mailbox") or "").strip()
+            customer = (rec.get("customer") or "").strip()
+            if mailbox not in {"GC", "WD"} or not customer:
+                raise SystemExit(f"Bad exclusion row: {rec}")
+            excluded.add((mailbox, norm_customer(customer)))
+    return excluded
+
+
 def apply_rep_map(rows: list[dict], map_path: Path) -> None:
     assigned: dict[tuple[str, str], str] = {}
     confirmed: dict[tuple[str, str], str] = {}
+    excluded = load_exclusions(map_path.parent / "excluded-customers.csv")
     with map_path.open(newline="", encoding="utf-8") as handle:
         for rec in csv.DictReader(handle):
             name = rep_name(rec["rep"])
@@ -247,6 +262,8 @@ def apply_rep_map(rows: list[dict], map_path: Path) -> None:
                 for customer in customers:
                     if not customer:
                         continue
+                    if (rec["mailbox"], norm_customer(customer)) in excluded:
+                        raise SystemExit(f"Refusing to assign excluded customer {customer}")
                     key = (rec["mailbox"], customer)
                     previous = assigned.get(key)
                     if previous and previous != name:
@@ -259,6 +276,8 @@ def apply_rep_map(rows: list[dict], map_path: Path) -> None:
                 for customer in [rec["rep_file_customer"], *customers]:
                     if not customer:
                         continue
+                    if (mailbox, norm_customer(customer)) in excluded:
+                        raise SystemExit(f"Refusing to assign excluded customer {customer}")
                     key = (mailbox, norm_customer(customer))
                     previous = confirmed.get(key)
                     if previous and previous != name:
@@ -274,6 +293,8 @@ def apply_rep_map(rows: list[dict], map_path: Path) -> None:
             noted = subject_rep(row["subject"])
             if noted:
                 row["rep"] = noted
+        if (row["co"], norm_customer(row["customer"])) in excluded:
+            row["rep"] = "Unassigned"
 
 
 def verify(rows: list[dict]) -> dict:
