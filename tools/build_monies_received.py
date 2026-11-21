@@ -868,14 +868,14 @@ button.back { font-weight: 700; margin: 0 0 10px; padding: 6px 10px; }
     <label class="sort" id="rep-filter" hidden>Rep
       <select id="rep-pick" aria-label="Rep">
         <option value="all">All</option>
-        <option value="Unassigned">Unassigned</option>
-        <option value="George">George</option>
         <option value="Nick">Nick</option>
+        <option value="George">George</option>
         <option value="Eric">Eric</option>
+        <option value="Christian">Christian</option>
         <option value="Eric (George)">Eric (George)</option>
         <option value="Eric (Christian)">Eric (Christian)</option>
         <option value="Daniel">Daniel</option>
-        <option value="Christian">Christian</option>
+        <option value="Unassigned">Unassigned</option>
       </select>
     </label>
     <label class="sort" id="company-filter" hidden>Company
@@ -975,7 +975,7 @@ const SUMMARY_LABEL = {
   overview: "Summary"
 };
 const repOf = row => row.rep || "Unassigned";
-const REP_ORDER = ["Nick", "Eric", "Eric (George)", "Eric (Christian)", "George", "Christian", "Daniel", "Unassigned"];
+const REP_ORDER = ["Nick", "George", "Eric", "Christian", "Eric (George)", "Eric (Christian)", "Daniel", "Unassigned"];
 function repGroups(rows) {
   return REP_ORDER.filter(name => rows.some(row => repOf(row) === name)).map(name => {
     const mine = rows.filter(row => repOf(row) === name);
