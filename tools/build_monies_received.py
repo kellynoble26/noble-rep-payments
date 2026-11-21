@@ -1319,7 +1319,7 @@ function render() {
 
   const stats = document.getElementById("stats");
   stats.replaceChildren();
-  const compact = Boolean(shown && summary);
+  const compact = Boolean(summary);
   stats.classList.toggle("compact", compact);
   const cards = [
     ["Payments", String(rows.length), VIEW_LABEL[mailboxScope()]],
