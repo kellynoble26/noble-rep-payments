@@ -1552,14 +1552,10 @@ GATE_HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta
 h1{font-size:20px;margin:0 0 18px;color:#111}input{width:100%;box-sizing:border-box;font-size:22px;letter-spacing:8px;text-align:center;padding:10px;border:1px solid #ccc;border-radius:8px}
 button{margin-top:14px;width:100%;padding:11px;font-size:16px;border:0;border-radius:8px;background:#1f4e79;color:#fff;cursor:pointer}button:disabled{opacity:.6}
 #msg{min-height:20px;margin-top:10px;font-size:14px;color:#b91c1c}
-.alt{display:inline-block;margin-top:14px;color:#1f4e79;font-size:14px}
-.switch{position:fixed;top:0;left:0;right:0;height:36px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 14px;background:#1f4e79;color:#fff;font:13px/1 system-ui,Segoe UI,sans-serif;z-index:20}
-.switch a{color:#fff}
 iframe.ledger{border:0;position:fixed;inset:0;width:100%;height:100%;background:#fff;z-index:10}</style></head>
 <body><form class="box" id="f" autocomplete="off"><h1>Cash Flow Carnival</h1>
 <input id="p" type="password" inputmode="numeric" maxlength="4" placeholder="Passcode" autocomplete="off" autofocus aria-label="Passcode">
-<button id="b" type="submit">Open</button><div id="msg"></div>
-<a class="alt" href="https://kellynoble26.github.io/noble-rep-payments/index.html" target="_blank" rel="noopener noreferrer">REP Payment Sheet</a></form>
+<button id="b" type="submit">Open</button><div id="msg"></div></form>
 <script>
 const S="__SALT__",V="__IV__",I=__ITERATIONS__,D="__DATA__";
 const u=s=>Uint8Array.from(atob(s),ch=>ch.charCodeAt(0));
@@ -1572,11 +1568,8 @@ const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:u(V)},k,u(D));
 const h=new TextDecoder().decode(pt);
 const url=URL.createObjectURL(new Blob([h],{type:'text/html;charset=utf-8'}));
 const frame=document.createElement('iframe');
-frame.className='ledger';frame.title='Monies Received';frame.src=url;
-frame.style.top='36px';frame.style.height='calc(100% - 36px)';
-const bar=document.createElement('div');bar.className='switch';
-bar.innerHTML='<a href="https://kellynoble26.github.io/noble-rep-payments/index.html" target="_blank" rel="noopener noreferrer">REP Payment Sheet</a>';
-document.body.replaceChildren(bar, frame);
+frame.className='ledger';frame.title='Cash Flow Carnival';frame.src=url;
+document.body.replaceChildren(frame);
 }catch(err){m.style.color='#b91c1c';m.textContent='Incorrect passcode';b.disabled=false;p.value='';p.focus();}});
 </script></body></html>
 """

@@ -11,7 +11,7 @@ iframe.ledger{border:0;position:fixed;inset:0;width:100%;height:100%;background:
 <body><form class="box" id="f" autocomplete="off"><h1>Cash Flow Carnival</h1>
 <input id="p" type="password" inputmode="numeric" maxlength="4" placeholder="Passcode" autocomplete="off" autofocus aria-label="Passcode">
 <button id="b" type="submit">Open</button><div id="msg"></div>
-<a class="alt" href="https://kellynoble26.github.io/noble-rep-payments/index.html" target="_blank" rel="noopener noreferrer">REP Payment Sheet</a></form>
+</form>
 <script>
 const S="oQ9znsm6kCJlHEyAxQ1FIw==",V="C0iJ0moqnhdsj13Y",I=2000000,D="8M2rTu2D6WXvJvDF/LEZ60GA/sLqV47oAn5K3U5edF1e1sibsdB7z201LMfiW9BuHXmUOMx3QlMk\
 De6xiRRJgUzBMMVM8op+x3K0bd6flIFf2BkXKh8C/sSCZTaHOGm0Os5yctaCgBy3feKeOd7va1vm\
@@ -3701,10 +3701,7 @@ const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:u(V)},k,u(D));
 const h=new TextDecoder().decode(pt);
 const url=URL.createObjectURL(new Blob([h],{type:'text/html;charset=utf-8'}));
 const frame=document.createElement('iframe');
-frame.className='ledger';frame.title='Monies Received';frame.src=url;
-frame.style.top='36px';frame.style.height='calc(100% - 36px)';
-const bar=document.createElement('div');bar.className='switch';
-bar.innerHTML='<a href="https://kellynoble26.github.io/noble-rep-payments/index.html" target="_blank" rel="noopener noreferrer">REP Payment Sheet</a>';
-document.body.replaceChildren(bar, frame);
+frame.className='ledger';frame.title='Cash Flow Carnival';frame.src=url;
+document.body.replaceChildren(frame);
 }catch(err){m.style.color='#b91c1c';m.textContent='Incorrect passcode';b.disabled=false;p.value='';p.focus();}});
 </script></body></html>
