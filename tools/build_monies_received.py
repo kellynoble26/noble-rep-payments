@@ -1552,10 +1552,14 @@ GATE_HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta
 h1{font-size:20px;margin:0 0 18px;color:#111}input{width:100%;box-sizing:border-box;font-size:22px;letter-spacing:8px;text-align:center;padding:10px;border:1px solid #ccc;border-radius:8px}
 button{margin-top:14px;width:100%;padding:11px;font-size:16px;border:0;border-radius:8px;background:#1f4e79;color:#fff;cursor:pointer}button:disabled{opacity:.6}
 #msg{min-height:20px;margin-top:10px;font-size:14px;color:#b91c1c}
-iframe.ledger{border:0;position:fixed;inset:0;width:100%;height:100%;background:#fff;z-index:10}</style></head>
-<body><form class="box" id="f" autocomplete="off"><h1>Cash Flow Carnival</h1>
+.alt{display:inline-block;margin-top:14px;color:#1f4e79;font-size:14px}
+.switch{position:fixed;top:0;left:0;right:0;height:36px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 14px;background:#1f4e79;color:#fff;font:13px/1 system-ui,Segoe UI,sans-serif;z-index:20}
+.switch a{color:#fff}
+iframe.ledger{border:0;position:fixed;inset:0;width:100%;height:100%;background:#fff;z-index:10}.party{font-size:34px;letter-spacing:6px;text-align:center;margin:-4px 0 6px;animation:bob 2.4s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}.confetti{position:fixed;top:-20px;width:9px;height:14px;opacity:.85;border-radius:2px;animation:fall linear infinite;pointer-events:none;z-index:0}@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}.box{position:relative;z-index:1}h1{text-align:center}</style></head>
+<body><form class="box" id="f" autocomplete="off"><div class="party" aria-hidden="true">🎈🎉🎪🎊🎈</div><h1>Cash Flow Carnival</h1>
 <input id="p" type="password" inputmode="numeric" maxlength="4" placeholder="Passcode" autocomplete="off" autofocus aria-label="Passcode">
-<button id="b" type="submit">Open</button><div id="msg"></div></form>
+<button id="b" type="submit">Open</button><div id="msg"></div>
+</form><script>(function(){var c=["#1f4e79","#e11d48","#f59e0b","#10b981","#8b5cf6","#0ea5e9"];for(var i=0;i<36;i++){var d=document.createElement("div");d.className="confetti";d.style.left=Math.random()*100+"vw";d.style.background=c[i%c.length];d.style.animationDuration=(4+Math.random()*5)+"s";d.style.animationDelay=(-Math.random()*8)+"s";document.body.appendChild(d);}})();</script>
 <script>
 const S="__SALT__",V="__IV__",I=__ITERATIONS__,D="__DATA__";
 const u=s=>Uint8Array.from(atob(s),ch=>ch.charCodeAt(0));
