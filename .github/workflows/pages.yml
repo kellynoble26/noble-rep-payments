@@ -19,8 +19,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Publish only the sealed pages
+        run: |
+          mkdir -p _site
+          cp index.html .nojekyll _site/
+          if [ -f received.html ] && grep -q 'AES-GCM' received.html; then
+            cp received.html _site/
+          elif [ -f received.html ]; then
+            echo "received.html is not passcode-sealed; omitting it from Pages"
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
