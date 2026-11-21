@@ -688,7 +688,7 @@ label.search input::-webkit-search-cancel-button { -webkit-appearance: none; app
 .stats.compact .stat { text-align: center; display: flex; flex-direction: column; justify-content: center; }
 .stats.compact .stat .v { font-size: 38px; }
 .stats.compact.withmailbox { grid-template-columns: repeat(3, 1fr); }
-.stats.compact .split { justify-content: center; gap: 28px; margin-top: 10px; }
+.stats.compact .split { justify-content: center; gap: 28px; margin-top: 0; }
 .stats.compact .split .amt { font-size: 22px; }
 .stats.compact .split .s { font-size: 13px; }
 .split { display: flex; gap: 18px; margin-top: 8px; }
@@ -1339,7 +1339,6 @@ function render() {
   }
   const mailbox = el("article", "stat");
   if (mailboxScope() === "all") {
-    mailbox.append(el("div", "k", "By mailbox"));
     const split = el("div", "split");
     for (const [code, group] of [["GC", gc], ["WD", wd]]) {
       const part = el("div");
@@ -1348,7 +1347,7 @@ function render() {
     }
     mailbox.append(split);
   } else {
-    mailbox.append(el("div", "k", "Mailbox"), el("div", "v", mailboxScope()), el("div", "s", COMPANY[mailboxScope()]));
+    mailbox.append(el("div", "v", mailboxScope()), el("div", "s", COMPANY[mailboxScope()]));
   }
   if (showMailbox) stats.append(mailbox);
 
