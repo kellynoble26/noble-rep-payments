@@ -65,6 +65,7 @@ GC,Lake Pleasant,George (007),confirmed,Lake Pleasant,Kelly 11/20: Lake Pleasant
 GC,Lara Sosnow | Lara Sosnow #2 Master Bath,Nick (222),fuzzy,Lara Sosnow #2 Master Bath
 GC,Leanne Corbisello,George (007),exact,Leanne Corbisello
 GC,Love Pool Care Paul Meister,George (007),exact,Love Pool Care Paul Meister
+GC,Luke Boran / Boren / Boron,George (007),variant,Luke Boran | Boran | Boren | Boron,Kelly 11/20
 GC,Margie & Steve Kerr,Nick (222),confirmed,Margie & Steve Kerr,Kelly confirmed 11/20
 GC,Marina Lamb | 26-GC-LAMB-TUCCI SUNSHADE,George (007),variant,Lamb | Marina Lamb | Tom Lamb | 26-GC-LAMB-TUCCI SUNSHADE | 26-Marina Lamb - MISC Services - 6001 N 38th Pl Paradise Valley_007,Kelly 11/20: all Lamb = George
 GC,Mark Kampf,Nick (222),exact,Mark Kampf
@@ -90,6 +91,8 @@ GC,Sharlene and Keith Carney,Nick (222),exact,Sharlene and Keith Carney
 GC,Stacy Weber,George (007),exact,Stacy Weber
 GC,Stanislov Sazonov,Nick (222),exact,Stanislov Sazonov
 GC,Suntex / Suntek / Suntech,Christian (444),variant,Suntex | Suntek | Suntech | 26-GC-Suntex Canyon Lake Bathroom HVAC Replacement-16802 AZ Hwy 88-444,Kelly 11/20: all Suntex = Christian
+GC,Saguaro Lake,Christian (444),variant,Saguaro Lake | Saguaro,Kelly 11/20: all Saguaro Lake = Christian
+WD,Saguaro Lake,Christian (444),variant,Saguaro Lake | Saguaro,Kelly 11/20: all Saguaro Lake = Christian
 GC,Steve & Jodine De Laveaga | 26 - Steve & Jodine De Laveaga #1,Nick (222),fuzzy,26 - Steve & Jodine De Laveaga #1
 GC,Steve Veit | Steve Veit #2- E. Bella Vista,George (007),fuzzy,Steve Veit #2- E. Bella Vista
 GC,Therapez,George (007),exact,Therapez
@@ -149,6 +152,7 @@ WD,Scott Fleming,Nick (222),exact,Scott Fleming
 WD,Sharlene Carney,Nick (222),exact,Sharlene Carney
 WD,Steve & Jodine De Laveaga #1,Nick (222),exact,Steve & Jodine De Laveaga #1
 WD,Steve and Jodine De Levaega,Nick (222),exact,Steve and Jodine De Levaega
+WD,Shane and Denise Thurlow,Nick (222),variant,Shane and Denise Thurlow | Shane Thurlow | Denise Thurlow | Thurlow,Kelly 11/20
 WD,Toma and Dawna Lepler,Nick (222),exact,Toma and Dawna Lepler
 WD,26-WD-HERWIG-6037 E CHARTER OAK RD,Eric (333),exact,26-WD-HERWIG-6037 E CHARTER OAK RD
 WD,BANK CONVERSION NGC,Eric (George),fuzzy,BANK CONVERSION,"Kelly override 11/20: Eric ordered material, George true rep"
