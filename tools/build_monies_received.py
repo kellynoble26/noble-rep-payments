@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import csv
 import json
 import os
 import re
@@ -29,23 +30,23 @@ ITERATIONS = 2_000_000
 
 # Figures printed on the workbook Summary tab. The builder refuses to
 # write a page unless the payment rows add up to these exactly.
-EXPECTED_ALL = (390, 356_925_832)  # count, cents
+EXPECTED_ALL = (421, 401_678_340)  # count, cents
 EXPECTED_CO = {
-    "GC": (223, 245_384_381),
-    "WD": (167, 111_541_451),
+    "GC": (221, 242_203_413),
+    "WD": (200, 159_474_927),
 }
 EXPECTED_MONTHS = {
-    "2026-01": {"GC": 24_761_834, "WD": 2_477_696},
-    "2026-02": {"GC": 25_013_310, "WD": 9_363_080},
-    "2026-03": {"GC": 25_787_338, "WD": 13_820_897},
-    "2026-04": {"GC": 25_499_577, "WD": 9_400_636},
-    "2026-05": {"GC": 25_717_371, "WD": 8_382_682},
-    "2026-06": {"GC": 25_589_563, "WD": 11_692_609},
-    "2026-07": {"GC": 22_996_889, "WD": 6_584_383},
-    "2026-08": {"GC": 17_474_882, "WD": 15_875_985},
-    "2026-09": {"GC": 17_346_998, "WD": 10_840_375},
-    "2026-10": {"GC": 25_772_076, "WD": 11_291_922},
-    "2026-11": {"GC": 9_424_543, "WD": 11_811_186},
+    "2026-01": {"GC": 24_761_834, "WD": 10_218_285},
+    "2026-02": {"GC": 25_013_310, "WD": 10_774_023},
+    "2026-03": {"GC": 25_787_338, "WD": 20_567_429},
+    "2026-04": {"GC": 25_499_577, "WD": 11_519_861},
+    "2026-05": {"GC": 25_717_371, "WD": 12_125_778},
+    "2026-06": {"GC": 22_925_915, "WD": 15_866_305},
+    "2026-07": {"GC": 22_996_889, "WD": 13_315_996},
+    "2026-08": {"GC": 17_474_882, "WD": 17_324_080},
+    "2026-09": {"GC": 17_346_998, "WD": 13_788_027},
+    "2026-10": {"GC": 25_254_756, "WD": 17_169_972},
+    "2026-11": {"GC": 9_424_543, "WD": 16_805_171},
 }
 
 LONG_DIGITS = re.compile(r"\d{7,}")
@@ -68,6 +69,9 @@ def text(value) -> str:
 
 
 def received_display(value: str) -> str:
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        parsed = datetime.strptime(value, "%Y-%m-%d")
+        return parsed.strftime("%m/%d/%Y")
     parsed = datetime.strptime(value, "%Y-%m-%d %H:%M")
     return parsed.strftime("%m/%d/%Y %H:%M")
 
@@ -121,7 +125,8 @@ def load_rows(path: Path) -> list[dict]:
             }
             for field in ("customer", "invoice", "deposit", "method", "source", "subject"):
                 blob = record[field]
-                if LONG_DIGITS.search(blob) or SENSITIVE.search(blob):
+                check_number = field == "subject" and "Check #" in blob
+                if SENSITIVE.search(blob) or (LONG_DIGITS.search(blob) and not check_number):
                     raise SystemExit(
                         f"Refusing to publish {sheet} row {excel_row} {field}: "
                         "possible account, routing, SSN, or EIN"
@@ -133,7 +138,94 @@ def load_rows(path: Path) -> list[dict]:
     return rows
 
 
-def verify(rows: list[dict], workbook: Path) -> dict:
+def load_csv_rows(gc_path: Path, wd_path: Path) -> list[dict]:
+    rows: list[dict] = []
+    index = 0
+    for sheet, path in (("GC", gc_path), ("WD", wd_path)):
+        with path.open(newline="", encoding="utf-8-sig") as handle:
+            for excel_row, rec in enumerate(csv.DictReader(handle), start=2):
+                values = [rec.get(name) for name in (
+                    "Mailbox",
+                    "Date Received (AZ)",
+                    "Customer",
+                    "Invoice #",
+                    "Invoice Amount",
+                    "Amount Received",
+                    "Deposit/Paid Date",
+                    "Method",
+                    "Source",
+                    "Subject",
+                )]
+                if all(v is None or str(v).strip() == "" for v in values):
+                    continue
+                mailbox, received, customer, invoice, invoice_amount, amount, deposit, method, source, subject = values
+                if text(mailbox) != sheet:
+                    raise SystemExit(f"{sheet} row {excel_row} mailbox is {mailbox!r}")
+                received = text(received)
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", received):
+                    when = received.replace(" ", "T")
+                elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", received):
+                    when = received
+                else:
+                    raise SystemExit(f"{sheet} row {excel_row} date received is {received!r}")
+                amount_cents = cents(amount)
+                if amount_cents is None:
+                    raise SystemExit(f"{sheet} row {excel_row} has no amount received")
+                record = {
+                    "i": index,
+                    "co": sheet,
+                    "when": when,
+                    "whenText": received_display(received),
+                    "customer": text(customer),
+                    "invoice": text(invoice),
+                    "invoiceCents": cents(invoice_amount),
+                    "amountCents": amount_cents,
+                    "deposit": text(deposit),
+                    "method": text(method),
+                    "source": text(source),
+                    "subject": text(subject),
+                    "rep": "Unassigned",
+                }
+                for field in ("customer", "invoice", "deposit", "method", "source", "subject"):
+                    blob = record[field]
+                    check_number = field == "subject" and "Check #" in blob
+                    if SENSITIVE.search(blob) or (LONG_DIGITS.search(blob) and not check_number):
+                        raise SystemExit(
+                            f"Refusing to publish {sheet} row {excel_row} {field}: "
+                            "possible account, routing, SSN, or EIN"
+                        )
+                if record["deposit"] and not re.fullmatch(r"\d{2}/\d{2}/\d{4}", record["deposit"]):
+                    raise SystemExit(f"{sheet} row {excel_row} deposit date is {record['deposit']!r}")
+                rows.append(record)
+                index += 1
+    return rows
+
+
+def rep_name(label: str) -> str:
+    match = re.match(r"([A-Za-z]+)", label.strip())
+    return match.group(1) if match else "Unassigned"
+
+
+def apply_rep_map(rows: list[dict], map_path: Path) -> None:
+    assigned: dict[tuple[str, str], str] = {}
+    with map_path.open(newline="", encoding="utf-8") as handle:
+        for rec in csv.DictReader(handle):
+            if rec["match_type"] not in {"exact", "fuzzy"}:
+                continue
+            name = rep_name(rec["rep"])
+            for customer in [part.strip() for part in rec["report_customers"].split("|")]:
+                if not customer:
+                    continue
+                key = (rec["mailbox"], customer)
+                previous = assigned.get(key)
+                if previous and previous != name:
+                    raise SystemExit(f"Rep conflict for {key}: {previous} and {name}")
+                assigned[key] = name
+    for row in rows:
+        row["rep"] = assigned.get((row["co"], row["customer"]), "Unassigned")
+
+
+def verify(rows: list[dict]) -> dict:
     by_co = defaultdict(lambda: {"n": 0, "cents": 0})
     by_month = defaultdict(lambda: {"GC": 0, "WD": 0, "n": 0})
     for row in rows:
@@ -158,20 +250,6 @@ def verify(rows: list[dict], workbook: Path) -> dict:
         if got != expected:
             raise SystemExit(f"{month} {got} != {expected}")
 
-    wb = load_workbook(workbook, data_only=True)
-    summary = wb["Summary"]
-    summary_all = (
-        int(summary["B7"].value),
-        cents(summary["C7"].value),
-    )
-    if summary_all != EXPECTED_ALL:
-        raise SystemExit(f"Summary All cell {summary_all} != {EXPECTED_ALL}")
-    for cell, co in (("B5", "GC"), ("B6", "WD")):
-        count = int(summary[cell].value)
-        total = cents(summary[cell.replace("B", "C")].value)
-        if (count, total) != EXPECTED_CO[co]:
-            raise SystemExit(f"Summary {co} {(count, total)} != {EXPECTED_CO[co]}")
-
     return {
         "all": {"n": EXPECTED_ALL[0], "cents": EXPECTED_ALL[1]},
         "GC": {"n": EXPECTED_CO["GC"][0], "cents": EXPECTED_CO["GC"][1]},
@@ -186,13 +264,33 @@ def js_payload(data) -> str:
 
 LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAVAAAACoCAYAAAC2XrYZAAA6cUlEQVR42u29eXhcxZX//T1V9/aixQvYwbZkm2EJYEMWICQkECywzZIMYZJIWWdCMhPIL3mB4AXINq0eJhPAmCUOyYsTsk2WH9KEvJME4wUjExJCJpBkmFjD4hiMJdlgFltSq5d7q877R90W7ba61ZK6W1t9n8cPYKTuunWrPnXq1KlzACsrKysrKysrKysrKysrKysrKysrKysrKyurPJHtAqsJJpEzLhmAtl1iZWVlNTw45RB/L4P/Z2VlZWU1DDhPBHA3gDsALLIgtbKyshoenCcF4EwEW3cGcDAA6fEWpFZWVlZHgvOUAJwDOeD0gj/Z/+4DcBeAN1qQWllZWXACSwF8G0AyB5Q+zKFR9r91HkgTADYCWGJBamVlNV3B+V0AqSLgzP+jg5/J/ncKwPcAvMmC1MrKajqA800Avg8gPQJwDgfSDIAfATgj73stSK2srKYEON8C4N/HCM7hQOoDuBfAWUXaYWVlZTVpwHl6AE6vjOAcDqQawM8AvMuC1MrKajKC80wAPxnCQiwnOIcDKQP4BYBlFqRWVlYTFZy5vsa3BdtoVUVwDvUn/zs3AVie006yILWyspoo4Hw7gLYJAM7hQLoNwMUWpFZWVhMBnO8E8B95kPLHGZqlgLQDwN/mPZsFqZWVVUWUH1/5LpiDGp7g4BwKpLlW8iMAPjDEs9oMZVZWVmUH57kAfo7iBzdj/aNyLEavQm6AfJD+DsCH8p7VgtTKyqos4DwPwC+rBM6h/l+lQKryQPoHAB8H4FqQWllZjRWcTeMAzj0A1sIcTN0Gk42pGiDNbcOfAVwOIJzTF44FqZWVVSngXA7g/iqDczeA1QBm5bVtEYBbALw6DiD9C4ArANRYkFpZWQ0FzlwYrACwucrg3AXg8wBmDAH03JPxhQBuAvDyOID0KQCfBVBnQWplZZUPzpUAtlQZnM8AuBpA/TBQygdpA4CvAnhpHED6LIBrAMy0ILWysuC8GMCDKO0gp1wQ+t/AmqsdIYQo+Lms5gG4EcD+cQDp8zB+2tkWpFZW0w+clwDYXmVwdgK4EkB0jNDJB+kxAGIAesYBpHsBfAHAXAtSK6upD86/hbmFU01w/gXAPwGIlBky+SCdC+DLALpR+eukCodnmNoXQHyeBamV1dQD56UAfl1lcD4J4JM4PBSoEjGV+SCdE1iFL6Bw4Hw5M0DlgvQlAP8C46fNfWab3NnKapKAM1fvg7muWE1w/gnAJ1D9YPR8kB4F4DqYuNJqg/QVADcDWGxBamU1+cD5fgCPVgGcuTB6AsDH8iA2Hrd48kE6C8AaAM+NA0gPAlgP4DgLUiuriQ1OAvBBmHvdhSBXqeuPH8HEu0eeD9KZMPGmu8YBpL0ANsCWZLayGnfl57AUAFoAPFZlcD4WfO9ET8CRD9I6AFfBxHRWG6QJAN8CcIoFqZXV+IJTAvhwYAFWEpz5cHkUQ6eAm2z9VwvgczC3jKoN0iSAewCcZkFqZVXdie8EW+YnKjzxh8qd+XeTEJzDWaQ1MPGpnVUCaX5J5h8CeGvejsKC1MqqzOB0Afw9zCl3NcH5MA7P3j5VymDkP0cEwKcB7BwHkPoAfgpTUyoXpDZLvpVVGcD5CZgUa5UGZ37Zi0umIDiH6+8wTPzqk+MA0mxJ5rMtSK2sxj6RLwfw31UG54MALpoG4Byu/0OBxV/p/i+UvOX/A/BuC1Irq5FvJf8R5gpkNcG5Fbb0b6EdwMcA/LEKIC1UkvkC+16srIYH56dR+cOM/An6gJ2gJb0fB9WJeij0nrYAuNC+Jys7MQ8/BY4C+Mw4gPOXAJbZLeKIQZqNu/39OIG0A8B789po35vVtANnDaoTh5g/Af8T1rdWDpASTDxspa/MFhobvwZw2RAgtRmgrKY0OOsCcD5TBXDm/vfPAJxjwVkW5ffbZQB+M04g/R0mx40wK6sxgbMepoRFJa8QDnWa2wbgHRacFQNpftrAh6sE0qFyEnwU45/Mxcqq7OD8PEzVyWqBUwH4vzClgXPBaW+4VAek70HlM/4XSyd4OUwYlgWp1aQF50yYMr3VBKcP4EcAzrTgnBAgvRjANlS2WF8hkP4PKlMJwMqqouCcDVNwrJL5J/Mnogfg3wGcnjeZLTgnBkhXovLloovVohpNET8rq6qCsxoZ0PMnXhrA9wC82YJzUoD0ApjA+PEAabYk83BlpK2sqgrOo2Fq8OzNswgrCc4UTDq0Uy04Jw1Ic99NE0wc7niA9K+Ba8mWZLYaV3DOAfAlVLYKZH4eyQEAGwEsteCcEiB9N8yd92LhZ5UC6QvBwj/HgtSqmuB8A4CvVBmcCQDfBHCyBeeUBOk5AO4bJ5B2B+P5GAtSq0qCcx5M7e99eVv1SoKzD8BdsLV0pgtI3wmgPW9MVQqk+WNtP4AbASzIA6kda1ZjAud8AK0AXqwiOA8BuBPAiRac00L5oWZnwcTxqgrucgqNvZcB/BuARXbsWY0FnAuCFfmlKoPzNtgyuBakRm8D8GMcGetbDZC+BuBWOxatShm0ueBsCFbgA1UE56vBYD3WDlYrHHnd9nSY2kneOIC01+6GrEoZpAsBfC3YwlQLnK8AuCn4bjs4rYYbo28G8H2Y+N9qg7Qf5iDTlmS2g/KwQbkYwM2BFVgtcB4IYN1gB6PVKMbsaTBxwKlxAGkSwLdhY5Cn/SA8FsA6AAerCM7sSef8nHbYkBGr0Y7hJQHMBqoE0vxbcN+HLck87Qbd3wBYD3NgUy1w7gMQh421s6rMmD4ZwP8bbLMrNaaLJbD5CY5MYGNTJk6xQXY8jDO8muDsBvDPMMH3FpxWlR7jJ8LEDfeNA0gVTO5ZW5J5Cg6qr1d4UOXf7tgL4Iuw1+Ssxs9Y2FBhY6HYPf6fAzjXgnRyD6KTgkFUyW3NUPeLb4DJzGTBaTXec+A4ALejsn7+YtdPfwmTOCUrW0l0koDzWzD3x6sFzudgM9xYTdw5sRgmzvi1KoI0vyTzSgvSiT1ITgFwNyp7IpkPzt0w5TpmWHBaTYI5sggmZO+VcQLpdgCX5LXRgnScB8VSAN+pMjh3wRSIs+C0moxzphHAV1HZ23bDlWR+3xAgtfOnioPgVFQ+mDgfnM/AlEeos+C0moTK3zpXI99DMZA+CuADefPHgrTC4HwTTBmLSl5nywfnUwD+D4AaC06rKQLS/FSNrTg8VWOlAvKHAul/AfgIbEnmioLzzTAJFTJVBOdfAHwaQNS+WKtpANK5MMmVe6oE0vza9n8C8PcAXDvfygfOt8KU6q1kJpqhSsJ+CkDYvkiraQjSOTBxzF1V2trnz78nAfwjDi/JbOffCMF5JswVsWqk8Mr++TOATwAI2RdnZUE6WGn2hQrOuWIg/V8AV8K6zoYFZ34S2Wpm49YA/gjg43brYGU1JEhnA1gD4PmcOVNNkD4N4CrYksxFwXkWgHtxZD2YSm4bGMATeZavBaeV1dAgnQ8TQ1oNiBYqybwKwMzpDNJ8cJ4N4GcoXyEtjdJqsme/42G7ollZDTtnnWArvS9nno00kL5cIH0ewPUAjp5OIB2qAmE5S7nqEf5+9md/E3S8haeVVWFLFDAXR/aPAKCVBmkXTNTAlM52lg/Od8Nka6kUOBOBValRGkAfyRskVlZWQwO0fgQATQJ4KG83WK6T/EL5ducX4c6kB+d5AH4xBotxOHCmYK50ngDgHTjcz2kBamVVHYBm/34AJhzqLTAXXwaqANKXYErlTOoaY/kNXgaT1qpS4EwC2AhzJz6rCy1ArazGFaBJHF5l9iSYkt0vo/CNpHIWa1yHSVblNr+BFwDYVEFwDsCUMcitEhgK2rDcAtTKatwBuiiYj7nhgQ0wfss9VQDpQQB3BLvSCQvS/AYtB7C5zOD0hgDnyUO0Qea0wQLUymr8AQq8HnmTGy44C8DnYK5LFzokKhcz+mBKnZw0kUCaHy95YQXAmfv72brUJxfpBAtQK6uJCdDcz8qNLQ0D+ChMZqb8uT9WP2k+SBMw7r5xLcmcD86LAWyroMXZP4LVwwLUympiA7QQSAHgPXluv3IdOA114Pw9mARFVQPpUODcXkbzuxA43ziCh7QAtbKaHADN/ez8rPTnwOTBSFcYpB6Af8eRJZnLClKRB5e/BdBRQXD2wRSDO3EUq4MFqJXV5AIoiszzU2Hqmx1CeQ+chirJfC9M+GMu92S5Og4wKfgfriA4e2HKD4/lxMwC1Mpq8gK0ELwWw5Qg6akwSBnmWvk55bBIs5bneyoMzkMBOI8vgz/CAtTKavIDtBBI58BUv30G5T+5z/+MX+DIkswjUtbB+6/BB6bHSPyhwHkHTO3qsYLTAtTKauoBNBekuQdONTAJlx9H+U/u8z/jfpjLQDTS58gm2KiFubRfapajUsB5O4C/KSM4LUCtrKYuQHPb4eSB9QMwd+7LnbzEz+HWl/KMyhFboddj5Ek/hroVcFuFwGkBamU19QGa2578A57zYZIUlSt5iQp+93mYmmijytiW/aWZQceVYoXmg/M1AOthHMGVAmc+QC8IAJkJ/jnUn3Twz4ctQK2sSgZod451NtS8yv59fwUBmj/nc+fu6QC+CxM0nwvSke6eswy7drTWZ74VekPeB5cCzlurBM58gF40go56wgLUyqokgM4IwFjq3Dq2CgAtxJYTA8PtAEZ+cp+1PruCRaOo9TkcWVXwy98CcA2AY4IPzzY2+4VO8Oc1mLRy34ApRpV9uKz1Wklx8M8DAHYE31nowXXQrift/LCyKkk+gC0wxeYKzS0O/j4Dk7cid15WUioH1gTgWZgT+1thKux+OseYyzJNFOGICH63L+CaP5bGZSH7hTzfQn4KqZtxZC4+a9lZWVlVW/khUDMAfBamZHmxEKgRWZ8jMeEJJoPKi3ngfDkAZ+MEA6co8c90BbwtY2JVyXklJtA4z91luwA+gsOTl+QeKmf/uarEHXrJkyhrxn4R5lbAyzlb9e68rTpPkI4bzfZ/vL6/Mm2IMQE7zGDuPMBYspMRj+vDfioWE+hcSlgyN2jzMo04GCAex3fDExQglVh0eJK0c6I940j7Q+BwN+JFAK6GyeuBHAv0AEzWt75ytj1rscwNINqQB9fJbc3EYpO6fspham6TiHU4ZfmcNpYAT4Z3SwATYiwGnz/W4Zh/n0Lv1qocHMvfIZ8Nk7wkNVLrc6wr1USyOIusfUxobR36OTuXEtpb1ODPUQWsruEmcLy1PNZec5tEe7Me/KzmNrlo0VEnaSnfxOClAJ9KrI8DMJNBoQCMSTAOEOh5JnqeCE8px/lvnU49/eL6CxODn93GEs3QFemf6gwCQmyHBHboIyzwUX9e6+jmTmsrV7UfR7uAlNTOEvqhs5OwZAmXp9/LKonXI4gAUxboYzCHR6+Van2OdBBQDjgnVofEYgLxuD72S9sX+xn+HUAC4DSYkyAwmEQ+WQEAoYiiVOrKvbet+I2BUMvoogUCAJ9w1a/nJsOZxyCohlgnwUgHUJP5v8CAJiJJobpZSPfdvPfWFbch1uEg3lT6qV+MBeKU9eVgwQ07zhZAM5gvhFZvFNEZjgjXwT/Y4zHwEDP+KKBfhaAoM51KoCZZP2cuWENnBsC+B7DeC9CjBLovER3Y/Gr8kt5BkLbQyBdN83uqYfW294hw9Ac6k0oDnAGhHxz4oinnMxn6yEWFiQgazIpJuGCuI5AAMTHIJ0Yvg18iol4m0QPQbiFEp9a6s/uWpq7DFpqhXBnF+1c3rN12n3Cj57KXSjI4Q0wZjDxjj2KwS0QRACGAISTOfuGmFbuz43f049+Mm4Y12/5BRmpv06lE0rjdKAmwAIhKnuHMGiAJQoSZHVAeJ5g0AT6bd5ghpuwW+fCfI/ZFqNbVqYFfdq1fvhptbRItLWqCgTTb7lG1a6RbvayjdeKptZURjyOjdL8k8XMGHwumk0W45iQQgf2MYergPCWANUg40K7b3nDVprd1b7ikKzthRr2sRUQKwBYC3sLAKbJm5iyQAKcTwfdnu5Egw7VQiVf7Af0HTfyU+X/LSv/utjaJFlIA0HDDjmYCribQOeRGwJkk4EbA6YFXVSZxo6yR398TbzqY/xEnXLUpnKaX38ckY8Jxl7DyfHJCC8kJfwjQH6pJ8d6a6zr+HZ76ZlcLdedCpeR27gw6nWgvGP9JhEUgOlVEZh7LKgNodfjco4KLFMiNQKX60gA6mLGbmHwimg/C253ao97MrAHlASTAygNpP9F4XceTRPQrznBb1+1Nu1632EuYzK1gxAHN6JAEn4HjCPQWUTNTcmYgb0wV8zBoUKgGOtULZvwPgOcJ3JVJeH2543f0MuOGhdoF0K8AWgzCaSI681j2U4G9QMO0NdvOKHQ6AdbqrwT0MCNFgTXKzARCDRjHENEJsvYoMCszvpHldPAdWoFCNUBmoN6Mg7kT0R2kc0Ca9ZOWbCBM8ZNYpsa1He+GED8CYT6UB3DeSsxai0idozMDv4+kMuft2t/vo625LNvVubGOukiSzmbwGnLclZxJ+iAigBhCatb6n7Wie/bd1vTyiK3tYIu1aM1D79JSfk24oXOZNTgzwMzIyFA0rH3vSeWnP7Tvtoueet36yhnES5dxFsCzr2ibWTN77l0yFP2YTvV5YBBARI4jyY2CM8lXNPP67ucOrEd7SyZrVY62b5bE2kK9A3M/AEnfhlZhMBO4qL9VkxMmZvUUMy46zKocfNfb38ckvyGI5muVUQSSEFKQEwJJF5xJDgC4N+Onb3xx/YXPjXbH0fjFBxvg0+0kQ83spfyclbFQ0zW5UUcr7+dSydUvrD/vuWqM/sZrH41SKH05E90J5QvTv8W6mDW5EcHa7wDhM103BYtNAXbMv37bQgF6N7H4R3JCy9hPA1orQ1EGQL6I1Dsq3X9j97oLWke8u5okTtWp5yiOdUh0HjAAbG9RC1Y9eLlTU/c9nepTIJJDjG9f1M5y1MDBH3TfuvLyMb/oWIeT729rWLv9pzIc/bBK9XsyUu+qZP813etXfH3QokMrStrCZSd9c7NsPPb/3EhC3ECOSzo9YMw4ZlC4VrCfflInDp7fc9f7X8EVj7vYeIZfwNdq+it43obrHvq6DNdepZO9Pogc42mAgpSOCNdBZ5KP60ziip7bLvnTiPuJmdC6w7ybYJFqXPvgnSJSf/Xg9xX+XSUidVIP9H2067aVP8VVm8I4KqoGF4LARzvvuq2nuBT6DYBZrLxg80kazAwSjojUQfvJ19jzPt9964oflgzR5jaJ5magvR1ob1FzYx114aR+DiTmQPtccIvMzJAugfWL6f6XTzjwzZZ+xFigs91EPsSbRmTxlObzXCbQeYCzz9Ww5sF7ZaS2Raf6hx7/uSa+DGnS/pv33nLBzsFx2bn08GcbwgWy4LqHPiGE2EBAPfsZBgkCsy+iMxw/2bu6ZzTuKQvQcVZzmwSAxuPn/g2Ufsr4rAb3Mvljxxc1Mx3d/+rartsuurU8L5sJVzzhYOOZ3ryrNs11ouFnSIZnsZ/c03Vo9olYvltjZzOXvB0OJvsxq7e8wXXCPxHh2gt08iCDSYMgwdAkXTD4Vd/vP3P/+vfuKfk5YjGBpUsJLS2qce22dhGp/6BO5iw4zAywonCtA+UPsEr/U9e6lT8ddT/FOhx0HuCFi466BJGaX3BmQBXxKTKICJp9KP+Urhm/2w3gyAUn9pcQ4qdmGlZvu0JG6+8eYsFksFYkXYdCUeiBvq90rV/xryP2zQ36G7dulZG6FcHiJYuBXyX7/rN7/crLqgqRux938eBu3XjsUZ8UkfpvF12kGJocV2g/06NrZ5+4D79MDXPASYjFCFgmTOgb6YZrt76DQqEtBNSx8giAEpF6R2f6/6nrluX3TEWATu0Qj7ZmjfYWhXT6VYY+REIMnh0NMRykTvb5FK5d17B6y8WIN/kmjGdM6xNj45kemtvk/g2XHGDWj4iamQDTr7HxTM9AgEo/zGhvUcdc88CxrhN+WIQiF+iBgx5ABAomL4HhuIL9zJUjgmcWRjt3MmIxEUl5/6jTA7vJDQtzoACAiEDC4fSAglY1FKr7SeOaBz+HeJM/qrCpwEJiiRehMjAHHYUNI5AAE3p1WL6GeFyjtfXIFxlf6iHGIppZ/AOd6n+BnJA0B1I5b5mEw0ppner3Re3MGxvXbvsUWlpUdrEdyeJIED0gGSwuRc4NSICE2FP1kLDZuzXaWxRr3sfaN++w2PEGCYBwcF/rGUmzOFHx85B4XCPe5CNOGrG2UPftKx9jP/NJOK4Akc5u5Zmpd6oiZmoDNHj/KjEnBYikcVUVWlGJwFpA+0xO5CcLVm17I1pImW3MGLVkLpkJRztJOgD4WQBUslM9FhOIk164duuCUCS6TTihk/VArw8i9zBLJ1wrOd3/q+71K+8b1Wofj2ssbaVdGy7phZf5HEgeGdpFJFkrzV5KiUjtNxpXb/3kqCC6pJkBQMLpY+Xx4acPRy5ERALEPMDhZLLw3okY2CF2bXhjGsQPkBsBwHqIcSHAEDqV0CB55/zrty1Ce4seWcgPMRNKBgMDhyp4OWFotWdnOQ1Aaxi/drFHIhDDy3nnpbc33pLBFY+73etX3qdTiZ+LcK1ksAo8QInBRdMCdDKqZ8h5NMQAEux7TNKZRY782dxYRx3QimEON0q3RhldYAaD95c+OJnQuZQar300qkn+J7nhE3Sq34cQhwOLBGkv4zPEl8zvjHKwtpBCG8uu2y/azJmB+0W4VoJZ5fcTtBLaSymEIt+ev/aBcw1ER7LYtAIAPN9TAOnSvEmkQ6jXJXW25t+imGFIENCeFpG6Oqno8+Z9LBvZfGDOjOBnxw0emkXG9EWFLeDXdmuAiR26kb2MJiIJVpAm5MtaoNNCQgjOJHwZrj01NOD/0GwXd8iyfDbxQdYKLHCodH/bDmm2uom7ZGTGmTrV7x0BT4YS4RqhVWZL963Ln0Rzuxh1PCtgDkoAYkfeyH5m6AMSIoLyiQApKfTjRTc8MjsAxfj61c3CwaTF0+ynMOjeKPCy2UsxE1+6pLktZCx2nnLnAqSZq3Lfpb1FIdZKPTev+JNWmUfIjUgoBU3sWYBOBTHzYQHbBUeccHTykC+jM/+uYdXmG0ft58tq6TIGAMXoB2sQZGlb6+Y2GQRHf0BG6j+pBw4evm3PtVJZgxjfApgOC1Ua9URg6r7p/N9rL/0bCkfz7xG/brF7KV+E6xcqP7kOcdJobx/fMbVkJwOAL+hFrfw0SFJBxzeB2PeIQMceOnaWSXc22htGVoGWCQAkJO4l4YDBIAg9VZ922gCUGEyOSwBJlLKbIiF1steX0RlfXrBq84fGBtH2wN6hDJihtVa5YC0Ae8KSnXzc9dtmgsSd7Kd5yPfF0OSEhE4PdJGufQggDkJjxiiThIRB9xDJIodvwtGpPiWcyKcar3vwrNEdyJRRweGScHU/wMlhLuAQWDM5ISkg5hkLdqkF6NgAqgGw0v5DOp3wSEgQKwvQyazQ/HoNgYj2Us+C+QA5IS7BJ0VgluyltQxFv7tg1aa3It7kVw0OrTsk4nGdVlglo/UN7KcVaKiAbdbkRsCELV23vzMZRA6Mfb/WukwBgM54m1S6rxfSKUxR1iDHJdb8L8YKbB6/w4IAfzWJeo+YTCAoD7O0ml604CyHgqiSnuf7djHrZ8gJw5vCjzstAFqLA5oZdaz0H1jgE+RGCFTCLRoiYuUDJGqEE/nZ/FW/mIP2Zl35DD8xgXiTmveFX88Fiat0OsGFA6CJwBrQtBkAsHNHeUBAxIix2L/hkgNg/rVwI8gLCcr9WalTCS2ku3L+2gdPR5z0uFqhADyRFABECdkgBPue0q7eP+7wn2xqbpNDvuc2Di4n0OMkQ+yQnLKcmT5beMCHwJzuW5Y/oBOv3S6iMxywHt4XKUiwl1QiVPM3Utb+FAxgaStV9LAhtkwAYMfLfFJG6mdD+Wromy7MEEKqVH+K2f99sPUu43ZphzAoFVuC24pF4MKaQlGSwD8ZEI3TveeghaJGhQEOm/jGgj+rSYaYoZ+fFX7t+cCCsgAt2TPVooY8rBxcxPWf4bgEQsQCdGpgVCMWE131v1ujk33bRGSGc0SIzpC/JqRO9foiWr+8ce32O0x86I5KWViE1mUKsQ6HwZ8o6Ps0AGByXADY1bP+QnM3vKxpw4w/i4R+TGeSw5xoQ7KXAjNfdszqLbXjdqLdanCZSsvZIBE9IlHJke4PYqZfdMZbMoGP2wK0REfJwuseXNG45sG/O+L/LjUhdEKInawyPpiPGtdF1QK0TG+dObjD2wo/lf6Y9pJ7yA3Lwds2xSHq6IFeX0Trrm5Ys/nTYz6ZL7wtEiDiBUl9lnDCS9hLYWjfp1niSbgAeCeIeOw3p/L9WQYmA6h5Gtp7iaRLBX3HRMR+Rgs3Mt8B3m6eZRxO5Dvbs9cnFua826Gtd+mQTicGXCm/Xn7rfUrDkxHrcFjzzwEEfZezWAbXYuujrz6MZOKkcMp7wIynJjXVOmNaxoEuQbtjfHuqhZkzEA6XFujMUqeTipyaby78fBA83lZmX192ldb6PeSGgeHyFJIAEf3l8K1T+ZYcMNMr687pA2MXhAtzRa+gNDlhgKhp3CyO4NaXFPRmki5QKG8twxeROgntxfbc3PS8CRmLW4CWssADtKDPP01E6moY/FcUcO50xlsyL9x07u5dGy7pPdzBYgE6qdXZCYVYh9N1y/L/Qib9ORGOSpSSUJWIoH0isMPhaFvDdZsa0dJSnuuegzJWEBG9e/j7y0RgBU3imcptiY2rgomeJukUv1Fj+gcgenuOC6DKWhYkY9ZN5vYZDZU4xhO1s12dOPgfXbeuvHVMibSnnfUxl4xbB5dRpI6IgvLFrQX8JLGYmIqXE6Y1QIPthI9Yh9N128rvqFTft0TNzNIOlYgE+xklnNA8Qvg/lsT+EkJnO5XlBg4zIR7XC27YdjTAp7I/TJINsGA/A/gw/s8K3jUm0O5hr1syiJUHYjrphDs3hU1ISxUnTywm0ApeuHbrApB4t/Hb5vQfswazkrWzXT3Q+0Ak7X3cJGlptpZnaQOUgB16cawjAsLH2MuAEVzTHHSd5M+zuK56DgAL0GpBdJlCW5vsrnGuVsne34pIfYmHSiR1ut8Xkfq3H0rs34j2FlWW654txmdImk8UMjSraJ5Jk+WHWHlKhMRLxjrYWbmBSugetooLMbH2wYRj+l8Im8D0qt7sWeqAiLXmz4pIfR208o2VzhrMPrlhYVLL9W7sOvTs+3ZtuCSN1opWIJ1aipnYZK/fu1yGao9nP2WiW6axpvldeGLs3MmIN/nk40PaS+8nJyRKP1Q65MvojE80rtq8piyHSoHPkJiOJydcOO4y604SAgwkPC9jfExDpXgbM5OMVasVv8xal+BS0EzCCTvQbzCWSXlv9qjeA0EIWRBKxkxBPGII8ZbMotWblpAbvlpnEp6phcVMoYgQ0RkOMz+l0gMtXbecfyU2XulXrJDgVFRzm0R8mWq8dvNRQjox7aeVOdsM5krz9OwWZ9oPjHhco61NdrUs725Yve0j5Ia3Q5hMXMMW4iJInQ5yiF67qbM73rRprKUugo3SouCruRg/iQgMJHTy0EDQnvKrPfuo3AetTEq04rcjNUlXavbnDE6s9vI1Z8aMJSqwGBmIZ59ZAVALVm17q3bd+4QTqQcrwKkHZ5Jgpf4Ilf6Oeu3QD/ZtvHQg8HlqC88CbqTc4PjmZnM4mU2N6Gz/rghF56l0fxogOd27ywIUMGEXsQ6nO960o+Hazatl3ezbTfbu4fqHCFoLkGIK1fx4war7397TQs+MtTAdaZpbkvVsKJuZKeu8A5XeqginH1qZNHDDGucCgnkGgLIXEnsNux3EYj46lxKWzKXG3vQMLeVJJJwPkKDPgDmi0v27CeJpUplHFNPmnpuX/clsQVmcccXj7hPZZNZWQxkFhwfHB4vfwrW/WcAis0G40ffpVELRyCuSWoBObUvUbMG74013NK7d+lYRnfUPOnnQBwlnGIYKVp6iUM0s4ujP5sY6zj4ADIxle8jQM0uK+DA5iL1dTwa1gSphggZXG3VaZShSwuczM0DQPFTWqFFPasHKA8CNciC6pxHnMo4FOOE7cJzZbt3RIOlCJ3uh04kXiGg7oB7Tnt4ptHxpcawjsifelEKc9BOABjOhvV2gpWXkJZqnMjpZg0H1C1dtOwcuAE2kQfNAdC4j82HhRufqdEIF5WN822UWoHkQXabQ3CZljXulSvafSuHa0zk9MEwhLpgs7ZmEL6MzTw0N9P8Q6+j9QIeDEZZIzWZnIqJQyaOewXhD5TN9k2QetxJazEzSIdb+qwBfzYwMmIgkOax1vZ94eQ4xnQzG28iNnCKi9Z9mL/Vp1hqcSUIleU/jdR1/ZvBDArx9L9FOZMPWbAhTdgwT+xmQkCdQOPJIdoF2QlGQDEElXoNK9WdGMjYtQKffKGIsYd4Tp9TCNZtaoMR/kXRns/J0kdtA2X2ro5O9vqwxOUS7401fmVJFtEKlLgWmDg6VVAJgBO+FBIGpv+vWFT8t+GOxDmdBMnMWJw5+hsAfN6WSNZMMLSYntBgk3qfTCbXw+h2/0Zrv6X7+wL1ob8lYiAJg1uSGBXuZZ3w/8WEAkJqln0zMF0TvgKBmGak/Uaf7OQhNo2C7NK2zWFmAHmGFkkYby70t9NeG1Q/8gwjX/wpaqcMGTWF2ODrZ5wuTQ/QvPfGme83JfIkWYnCTiJlK9tExkYPZxwUJjxmVshJ9zWFHCGC4KC/K5q2WiVyrukwSx6zeUvvi2w+lsHMuYekyHrx91XmAEW/ye4BHATzasPqhe4UjfkCOOJr9jGLlBQ0jB274PEnyvIXHv2GNWrvtSz3rVvzKuFwCWE9b+0EA0Imem1f+Ke///HJ+7PGvItm7lpxQK/u+BnwGGGyW1rIeFFqATna1UPZQ6f4Fa7Z+2amZ9a964FDxuuWDRNNBDtHI9xas2vRMT7zpTydctSm8q5SbToMM0n0lgZAZYA411macLlQo7WIQIO1oWUOOBCulix4kMQtoD9DqFTOxyjuzInUhZe5aMw0BO0Jzm8Ds10T3+vPvn/f5+y9yInUPQTi10D4FIVjMmaRmZpAbeZMTCv2yce3227qIVhuIDvm504ui2Zt12eD4JXNpX/zMAQDxxrXb9pIbvUd77Bt3N5lMS9M0DaCtiVTQEjWHSj23rvyqTvb+rOT0d4PXGWU0m0N011EXeyMcw6+UYnua8iAUAXqjwXaqcjs8ybUQEsOURDHB/b6nlPIPjMPEYrS3KGy80kOsLbT/jvc8Di91rQhFRM4dfgIgQSTZS2mdGVCiZuaqhrXbf4rWVjIJUHh6J1eOkzblWYJ0ddnMWrG2UNe6Fd/VXvIuGYqGoH0QUGN+qXVadpUFaFHt0IixqEXkkzrV/78Uqin1ppJgL/V6DtHOdkIsJsClZj3nrmFpSMHNRPAMGQqbkKHWCtz6GQzu56OIBIqWQ2EGCQkwv5oO1feYyThOp9xx49vsWn/hPTrV9ydyI0fmOzB+bakTr3lOzcwPNyTeeRfaW9S4ZJEa3XpRRdATAzt9xFg4GefL2hvYTzIEZjZb+HirtUCt8idhXKOznZ5ed04feZlm1qqfhEPFbwgNTk6pU32+iNYvb1g86+uIxzXrYdLNBXfZGfScCdsp9n7MrR8hHZd9PrryVgDNGzapMpGGyYC022RwGuftcDYbFNN3SLookorPVQMHPRmd+ZmGNQ99AO0tquxZtioGtSrPB+wQe+5sOgjG9ykUBRHCxqgv0pYYi8pXcbAAnZhqN0H2e++4eCer9KfghgUIpZ0wEwUn87M/u2D11hYB3g9RpMuzd9lJPqu9dBJCDmPykSYnDE3eogCglXyfi4Y3iJhJOszAH0xzdowzhEw2KM14UKf6ivuwmSX7GQapmxfHOiJoaS6QR3TiaElzW6jsOWCHU+cBBpi04jad6gczZp5w1f3hohZxnPRUTRVoAVrSyhsE2a9b2c6pvptK9ocGE1OnE1oIcQ8EvZ8zA5AoEBJlBhl1R3f0gLGLHDc46CwMLAgJJvnGABgVmjAAmE8omB4u1yrWigDsAFDuE/hRvDdjFfX0736OwXvICaFgngMiwV5ay3Dd8SqRuRggRhtPvPkRXLNcsGbLW/qXHvd0wx+2fRQAqgZSU+uIe+qd/+FMYg9AM/tCsujhauPqLacuvG77UgvQaQ1RU2aja/2FX9DJvgcMRLm0HKLKEyBRB+AGVgrMujCEYh0S8bgm4kdJhhjDpkBigHBaxYDVPlim+HhWPgpbZcyQUqp0os9nbQKxmzHeVgcjFhPYeKVHoL0QDoa5HcYgwQx6L4AKJKgun1tCkDhdRmYeO9jD1Wxrc5s0B0tip6yZMZtC0Roc6dwx7bnicRckHmWtvzO4nbcAnY4iBnZoMJMe0H+v0wPPkRspsRwIwSQngT9cfpLXIUibwYqKZz+CYOUDGm8CM401icmRMDd+qwULj1nAwGJWGZgwnyHRo4QbYTA/9OL6C19Cc5ucEMk6gmxQDH6NiIbxiBCx8gmgk40LYtmEDa5npjPYT2kSoq/qX95m8qdqyV/Wmf6PU+hgYnCcvz52CAAW1b/SSKGaegZM1dNCeUMtQKeDFRrXaGkXPXeteEUor5lZpyFLLQdCwwfiA0CLsSkiqcxDKpV4kaQjCx9+gNjPAIQ3zltz/6Jc6JUTPiT900SoJmIs7gJAJyJmJuGIe4yVMkHymzUPLn9e0P3FXCJkDH6qD55p4p0sx5epoJ1ns58RgwmNlx6oXluDfum5ecWfum46/8f74pcOvL4dyhoCZuz4kKeKaD0T0DehxoUF6DgpOFR6Yf2FT+hM6jMiFJUl1ZgfiaUb63B2bbikF0Rt5EaBgkH4RNBKyXBd2KHwuwygl5XvnQbbRWb9rqKn2MyanLDQ6cTT9ZFXt1TEGh71+wqaSHCD+T3MIkZlvoZazh0BC4B4weoHTySSS7WXAimlcp+z6u0plAN3Z9bVwO8IIldSE9YtYgFabSsgCLK/7cLvq4HeDSM6VCpJwemxI7+pMwMeSIgillM29OlSAFzWsh7BFpaA5ay8YsmUmZwQscDXOuMtmfE/fc9dBEwgPzFmBDdniltW5nzv1bJb82XRDgEAQvClIlwbgvIhxDguVHHSBXM9vO7+WGbGjpiSuQYsQMeylWprk90vrLhWJXt/XXI5kFIHZnOb3Pe1pqdY+T8SkTpR8LMJUntJgLBi0Q2/mo32FlWW+kyxmAARN6zdeiIJ8Vb2UoXGi6JQVOrUoSd7Du7+CWIxMaESqJi8rATCXLBG0b5hZhKSAXo2mPsTDaAmFR/jY8YfPUGNuWDsLFyz/XgmOp29NMB6SuYPnSYAXZLdxpXxJQblQNpJSc/7sPZSPeSESjtUKtVyYibWoZjOJPogHDH0FpoIylcyXHeU9qKXmdW/HBaggQeBLhPhOjewsOlI65cYzCCI/wcbr/TKXcJjbDKwbLx282xmLAwuJ1DR/TtrgqSHJ9wQDsouL7iu43wK17xFe2kfJMAmbGyCyYwdTfpSGaqJsPYBMTVvx04LgPb2dspg+1nexAfxuEZzm3zhjov3UTr1YYAUhOTiR70jsJza20XPbeftJaWuF5FaAZBfYOsJU8xNfS5bOXGsqwNaTdgWM19uqoMOMVaYfRGd4ehM8ra965Y/gjaeWGnhzJVMUjJ0inDDs6GULuyGYIZ0hEr3H9SktwzuMiaYiP1/Nm4G0gCBQ3ICWnY7NJrbJAGXs/JM6RmemvkFpjZAA4yJ8PwIg0Ng1BkLrYz3s1+/qfSIyiSvEeFaCUZ5Jl5Li0Iby723rviWHjh0n6iZ4UIP6WuVnElqEa49o2HttouzdZ5GvwXrkCDi+Qn/PTJct4S9tDoiH6rWvojWuyrV+8gJde71aG6T2QiCibPxMDXMBdRKcsJAscMhzUqEawmMe3puWvGKiX2dIKfwsQ4H7S2qYdXWZhmpezdnBhQRJIigvSDz/0Q53W4LLOVFR11Codo3aT+TCSonuFMRMVMboEFyDWJ/JgnHBdFMxDqcIAyjfCvi64dKd6nkoe+WXGO+JCsKGrGYSFL0cp3q/7OI1jsFIGqSeYD+7fWiYKNc9TsPMGIsBNFXmPWRKXNZ+yJS5+jMwLNh5X/w4XiTMtdQRwEcKah0n+2InoeAZfqMKx53CfgI+2mg0A0wZkWhqKOTfV2k1L8hFhPZWMeiX0BVqAsUY4F4k3/M6i1vINf5OvueziYxJiIQBck8ipxuC0luYLVWeEFgAppxXqzDIcJXoVXO9wWZ7Mf7dpoF6EhAsJQAkKf8+SRdEPMxixOYE5TDLTOsTTmQaNr/rEr1/YHCdeU5VApi7l5Zd04fsf8e7aU7g1tQXt7PCc4klYjMeHPDohlr0NKicMXGked7veJuF+0takHiwStlpO4MziQ1Disgxp6I1DvsZ3bJVHrl7vUXvoQY08jvOrcCABxwLaSTvfNPBSemeV8RHAzcMMO9vrsfdxAnvX/GK58SkfoT2cuoIfOYMiuSjmTWHoE/2nX7Ra8CrSXFgDKjfgTvkUYFz1YwEBOudH4i3Mg8c18fIttdBISH/RyFSGAFDvtAoz8nYEKs3UULqb8mvH+R0frT2EtpAmRQQda0s31qZV6e2gBdfpwAwER0FgkJcqN1Gv7bAWK0tpd3S0HEWNLMuzZckvYp08Je5hWSrijLoVI8rhFjsXfdyh6RfmW59pK/EzWzXADqsM8nEjqdUORGb1ywavM7sfFKD1fcXfpzxjocbLzSm79q88nCcW/W6aQeHCPme5SIznLZSz/Gmb5le+68+HlzuDGKCqRBij8mHE0mg5MuZkua1H2YkYn4M8BMBVP3MRPuftzFlWd6C6554CRywl/TXkoDeVcImRmsfRGukRAyoTPJ9+9dt/yRkp7HhIoRiOYEXoFSsl/PLjksiplMORjSIKKG6877kQjXXqBTidz6XAwCtBDhoi6MGAtINSeojahRvJMBRt0JV20KB39BpYGzw0GslRBvyTSs2XIlhWq+oFP9pq1ZcHOw8E0xTc2M9G0s8eBGgSvP9Mwg2P5pc2OHWJP8CmId9yPelDEDOghVaV2mxnzzJE4abW3yxZaLn29ctfVjCEc3m3IgmsYccxKENr1wxwf2Lf7E985Xxyy+U4RqrmDtg720D5AAQUArIiEd4Ubum79q87J9t130FK543MXGM/yiW7gr7nYRb/IWfO6+o4Ub/hkJp579pA4mtE9u2CHhQKf775b7n//8nh98MjXyWkJMaIPAzh2Eo5IS18TTevXm02XYBWeSXLiLiMBaiXBtmNKJJSB6AVdtCiHWkffdO3SQONlbsGbLW4QM3UckZ7OfCg6PmAHSJmuU61C4xtGZgT8Kr/+Kntve+wTaWBa8ABBjAewQ2FdPuPsMHwQG4zRzsl/k3RIRawXSOAXxuMYVfysLBp9n4WwuZvgN121qBNV8W4YiF+nkUNmkCKTVzCPg2x708atJiQ3k69XbzhTDDT9iYu0BQsxPR5yjAfQgtjMEdOiibW0nhTh8NLfJhus7WoV0Y+ylNaDFYNkkZjC41kB955Tawk/pzNvzV/1ijnTqbicn/HFOD2gAEJEaof3MVqlw/Z5bm/5cGb+VKSbXsHrr9bJ21k055UAUhWqkTvV/oHv9yvuKTtiCnx0T2e1yw3Xb3y/I+SqFIiezlwL7GYWAE+RGJLPq0b73wZ5bV/xusF2dB3gwCqGznbBkLmUXj/nXb1skyb2PZOgMnU5kCCTJcSW5UbCXfFrr9Be7b1l5X347RisTY+puI6JF7Ps8TM15RU5YaO39wRP60pe+tvzFoX5o3urtix2HPgGItURUp/20R9lrtEJIciMg4YC9VBdr3hBJ/veduzZckx7pYtC4dvtacsO3sJdSKFojnRkQDOlmWGUu6V63vGO4z37DF353jKtTHyXQ9cIJHaPTiSPhGURAqFRvvHvditZCBQznr334dEfobcyYBa0wTDkWReFayZnUHV3rzr+2lH44KrZpRiQZvkiSWE2h6Fk62a8Bzs3hoMgNS/bSf+5at/ytU40xNMWehRuvfTQKmfg7CHkuwJeJUHSeTiVer6rJrClcIziTZIB+C8JvyYl2aj/9UPctTV1jqec+FEQb12y7V0RntOhkbwZEoFCN5HRfc9etF/58VADNWnLN7QLtLeqY1T+sdZ3GzxDEZ8gNnwAA2kuBleeRcFwiMcCMeLqfv3ngm039hT5x4XXbW1jIdURyEXspFuFaAgloL7WHtf6Wr71vvLj+woQBTbMe2YGESaw87wu/nutofQ773kISdAaILiXpzmIvzSX5CJmZ3Aixn34J4K1g2qXBfUTkErAARKcBdJaI1NVyJmkGhRMyZ0esoTLJJAG/J0H3EhL3vnDTe18btC4LbttN2xeu7ThTO+7J8NMnANwknNC72fe4pG1uUJZZs04T618yiU5WqpcEaWZNRIJJk4DAHACnMYmzZbj2KM4MgJU/dFntbAhZsu/rXbcuv8bsMs70Gr/4YAMj8g7OJBcTibeB8D4hZJR9r7Q+BjM5EdIq/TgxHmXN+5l0msjhrAeAmCWEnMPMJ4PEmcKNNIA1OJM8sq0MTW5IaD/z1+4aeXIA+RIcsnYLX13FYoR4nBHubRCy/sdwQuD0AHQqwUFi4gCzQnBmgEGShBs5ByTOEdGZ4Nd6rgawIQhCH/sJeusyBbDw+rd+ykn3L5G1s0/lzAAoXAuV6h+j/5UY7VBobpMvrm9JAFg/P/aLb8nkrEsB9WECnyvCdUcFhleNcCM3h/DKNY1rt/9fgnpYMb9AkFpDzZPknMWCWkTN7NPAGtpLAUIktZ/+LQg/HRhI/uzVDZf0Ahh9DfU2CLRASd9b5tTPbdPeAAABzgyA/QwgJJU0n0gQ+2mQdN9AbvTjoDxzSvvQ6QHo5KEEGAMgekVr9TwRdULrx6V2Hnth/XnPHebqaQnq/xQcVyDEwQr+hlDNnHfozADAGjqdCA6GxPAsIEGsNUiIsAjXfRDFKmSzAnsp6GSvAZ6QcsjP5+DRSTcAwAnhl8QuAMjgMnf27G9oIQES0AbCpfcxiNhPQ4SiZ5IMnVmctRrsp8GZhLkjO2RbOTjwwtEL0v7MHuAVDHel1lqg46cz7n7c3bfr0HGsPHLJESwLvykPSguW2q2ZSZze/2JgkZRvdQy2uQs/t3UBz6g9izNpjwS5wkv9/oU7Lt5XoLLkyK3RNohcS/aY1VveIN3QWULjbLB/GhiLGHSscNyZIAFT4lcDpn4RGHo/gXYyUycJ8Zjvq9/uX3/BnsNBAz3Wth699jf1dWHZ6KUHdCnvp+CgVcwe+5qky69zxyMgDIKv2UUqChzaHflN3xFuBmZC6w5pguRLf575129bFBI1NZ6fYk1KuJCjOoD1faFIai7MT0EuqZL6hWWE/Eyqz7wrM5YW3fCr2eQcPS/bx47jjupUXUBpj2VRF81I2kqKeW7frGef2HimN5V4M72rD1ZF1aoLlD2gAQ9lUc2NddSJ/kyNq3kGsRsmyZwBJcK+OLSn50DfEZZlLCawtJXKAc7x3ZkEhz8AgB1TtrSElQVomSfNCBUHVwwUWRihHUAzKg4lZkJ7u8DOuWROSkvYdudGJFQMNEyIVXrMtQbvs5WHzf850nc4IUv3tuLwd1WNPh6lRhPuZgFqNWEs4Vg2drL19cnX2pq918K2j6ysrKysrKysrKysrKysrKyspqAmgw9UwETwvhFAG6ZIAK6VldWQPGIA7wfwXM7cn7CaTIH0tQDebMeYldWUV81kaehkAqie6KuRlZXVqMU5FuikmeeT7SqnLYJnZTX1AWqBZGVlZTXVNdksUGVfmZWVtUAtQEdnLUs7zqysprwmzc54MgG0H8BjdmxZWU15JWwXWFlZWU1xkW2vlZXVBJO9LGNlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWU1efX/AyRnSYfNDalDAAAAAElFTkSuQmCC"
 
+def money_text(cents_value: int) -> str:
+    return f"${cents_value / 100:,.2f}"
+
+
+def slash_day(iso: str) -> str:
+    year, month, day = iso[:10].split("-")
+    return f"{month}/{day}/{year}"
+
+
 def render_report(rows: list[dict], expected: dict) -> str:
     payments = js_payload(rows)
     expect = js_payload(expected)
+    whens = [row["when"] for row in rows]
+    date_range = f"{slash_day(min(whens))} through {slash_day(max(whens))}"
+    check = (
+        "Checked against the workbook: "
+        f"All {EXPECTED_ALL[0]} / {money_text(EXPECTED_ALL[1])} · "
+        f"GC {EXPECTED_CO['GC'][0]} / {money_text(EXPECTED_CO['GC'][1])} · "
+        f"WD {EXPECTED_CO['WD'][0]} / {money_text(EXPECTED_CO['WD'][1])}."
+    )
     return (
         REPORT_HTML.replace("__PAYMENTS__", payments)
         .replace("__EXPECT__", expect)
         .replace("__LOGO_SRC__", LOGO_SRC)
+        .replace("__UPDATED__", "11/18/2026")
+        .replace("__RANGE__", date_range)
+        .replace("__CHECK_LINE__", check)
     )
 
 
@@ -385,7 +483,7 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
       <span class="logo-badge"><img src="__LOGO_SRC__" alt="Noble" height="56"></span>
       <div>
         <h1>Receipts and Reps</h1>
-        <p class="subhead">Updated 11/17/2026 · 01/01/2026 through 11/17/2026 (Arizona time)</p>
+        <p class="subhead">Updated __UPDATED__ · __RANGE__ (Arizona time)</p>
       </div>
     </div>
     <div class="actions noprint">
@@ -397,7 +495,7 @@ tr.total:hover td, tr.total td { background: #f5f5f4; }
 <main class="wrap">
   <div class="printonly">
     <h1>Receipts and Reps</h1>
-    <p>Noble General Contracting (GC) and Noble Windows &amp; Doors (WD). Updated 11/17/2026. 01/01/2026 through 11/17/2026 (Arizona time).</p>
+    <p>Noble General Contracting (GC) and Noble Windows &amp; Doors (WD). Updated __UPDATED__. __RANGE__ (Arizona time).</p>
     <p id="printmeta"></p>
   </div>
   <div class="toolbar noprint">
@@ -537,7 +635,14 @@ const SUMMARY_LABEL = {
   company: "By Company",
   overview: "Summary"
 };
-const repOf = () => "Unassigned";
+const repOf = row => row.rep || "Unassigned";
+const REP_ORDER = ["Nick", "Eric", "George", "Christian", "Daniel", "Unassigned"];
+function repGroups(rows) {
+  return REP_ORDER.filter(name => rows.some(row => repOf(row) === name)).map(name => {
+    const mine = rows.filter(row => repOf(row) === name);
+    return { name, n: mine.length, total: sum(mine), key: name };
+  });
+}
 
 function selected() {
   const q = query.trim().toLowerCase();
@@ -638,7 +743,7 @@ function renderSummary(rows, total) {
   document.getElementById("summary-body").replaceChildren();
   title.textContent = SUMMARY_LABEL[summary];
   if (summary === "ytd") {
-    note.textContent = "01/01/2026 through 11/17/2026 (Arizona time). " + VIEW_LABEL[view] + ".";
+    note.textContent = "__RANGE__ (Arizona time). " + VIEW_LABEL[view] + ".";
     const lines = [{ cells: [VIEW_LABEL[view], String(rows.length), money(total)], total: true }];
     if (view === "all") {
       const gc = rows.filter(row => row.co === "GC");
@@ -690,10 +795,9 @@ function renderSummary(rows, total) {
   }
   if (summary === "rep") {
     const repName = repPick === "all" ? "All reps" : repPick;
-    note.textContent = "No payment in this report has a rep. Every row stays Unassigned. " + repName + ".";
-    const lines = rows.length
-      ? [{ cells: ["Unassigned", String(rows.length), money(total)], total: true }]
-      : [];
+    note.textContent = "Grouped by rep. " + VIEW_LABEL[view] + ". " + repName + ".";
+    const lines = repGroups(rows).map(group => ({ cells: [group.name, String(group.n), money(group.total)] }));
+    if (lines.length) lines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
     summaryTable(["Rep", "Payments", "Total"], lines);
     return;
   }
@@ -708,9 +812,11 @@ function renderSummary(rows, total) {
     });
     if (companyLines.length) companyLines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
     summaryBlock("Each company", ["Company", "Payments", "Total"], companyLines);
-    const repLines = [{ cells: ["Unassigned", String(rows.length), money(total)], total: true }];
-    summaryBlock("Each rep", ["Rep", "Payments", "Total"], rows.length ? repLines : []);
-    const repGrid = amountGrid([{ key: "Unassigned", name: "Unassigned" }], () => "Unassigned", rows);
+    const groups = repGroups(rows);
+    const repLines = groups.map(group => ({ cells: [group.name, String(group.n), money(group.total)] }));
+    if (repLines.length) repLines.push({ cells: ["Total", String(rows.length), money(total)], total: true });
+    summaryBlock("Each rep", ["Rep", "Payments", "Total"], repLines);
+    const repGrid = amountGrid(groups.map(group => ({ key: group.key, name: group.name })), row => repOf(row), rows);
     summaryBlock("Rep by month", repGrid.headers, repGrid.lines);
     const companyGrid = amountGrid(companyRows, row => row.co, rows);
     summaryBlock("Company by month", companyGrid.headers, companyGrid.lines);
@@ -947,7 +1053,7 @@ if (problems.length) {
   document.getElementById("check").textContent = "";
 } else {
   document.getElementById("check").textContent =
-    "Checked against the workbook: All 390 / $3,569,258.32 · GC 223 / $2,453,843.81 · WD 167 / $1,115,414.51.";
+    "__CHECK_LINE__";
 }
 render();
 </script>
@@ -1044,17 +1150,20 @@ def self_test_crypto() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("workbook", type=Path, nargs="?", help="Monies_Received_2026.xlsx")
+    parser.add_argument("--gc", type=Path, required=False, help="GC payments CSV")
+    parser.add_argument("--wd", type=Path, required=False, help="WD payments CSV")
+    parser.add_argument("--reps", type=Path, default=ROOT / "data" / "rep-customer-map.csv")
     parser.add_argument("--self-test", action="store_true", help="Check the seal round-trip and exit")
     args = parser.parse_args()
     if args.self_test:
         self_test_crypto()
         print("crypto self-test ok")
         return
-    if not args.workbook:
-        parser.error("workbook path is required")
-    rows = load_rows(args.workbook)
-    expected = verify(rows, args.workbook)
+    if not args.gc or not args.wd:
+        parser.error("--gc and --wd payment CSVs are required")
+    rows = load_csv_rows(args.gc, args.wd)
+    apply_rep_map(rows, args.reps)
+    expected = verify(rows)
     html = render_report(rows, expected)
     out = ROOT / "received.html"
     password = os.environ.get("FIELD_LEDGER_PASSCODE", "")

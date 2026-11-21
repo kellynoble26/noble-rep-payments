@@ -1,0 +1,162 @@
+mailbox,rep_file_customer,rep,match_type,report_customers
+GC,24 - 0115 - Rebekah Wall (6412 S. La Corta Tempe 85283),Nick (222),exact,24 - 0115 - Rebekah Wall (6412 S. La Corta Tempe 85283)
+GC,25 - 0066 - Bank Conversion,George (007),exact,25 - 0066 - Bank Conversion
+GC,25 - 0070 - Building H - Bullhead Holding LLC,Christian (444),exact,25 - 0070 - Building H - Bullhead Holding LLC
+GC,"25 - 0071 - Jana Foreman (18656 N 44th Pl, Phoenix, Az 85050)",Nick (222),exact,"25 - 0071 - Jana Foreman (18656 N 44th Pl, Phoenix, Az 85050)"
+GC,"25 - 0083 - Christian Burwash (5213 W Pedro Ln, Laveen Village, Az 85339",Nick (222),exact,"25 - 0083 - Christian Burwash (5213 W Pedro Ln, Laveen Village, Az 85339"
+GC,25-0901- CAFE,Christian (444),exact,25-0901- CAFE
+GC,26-GC-CAFE CASHIER COUNTERTOP AREA,Christian (444),exact,26-GC-CAFE CASHIER COUNTERTOP AREA
+GC,"26-GC-East Valley Ophthalmology-Drywall, Paint & Flooring-5620 E Broadway Rd",George (007),unmatched,
+GC,26-KB-Amanda Goossen-2945 N 47th St.-Master Bath,Nick (222),exact,26-KB-Amanda Goossen-2945 N 47th St.-Master Bath
+GC,6412 S. La Corta Tempe 85283 (Rebekah Wall),Nick (222),fuzzy,6412 S. La Corta Tempe 85283 | Rebekah Wall
+GC,Adam Hawkins and Abigail Polito,Nick (222),exact,Adam Hawkins and Abigail Polito
+GC,Ali Soderman | 26-GC-Soderman-Flooring-4049 W Irma Ln,George (007),fuzzy,26-GC-Soderman-Flooring-4049 W Irma Ln
+GC,Amanda Goossen,Nick (222),exact,Amanda Goossen
+GC,Arbor Therepy,George (007),unmatched,
+GC,BBB Town Square,George (007),unmatched,
+GC,Blake Farrr,Nick (222),exact,Blake Farrr
+GC,"BLB Elite Services, LLC",George (007),exact,"BLB Elite Services, LLC"
+GC,Branden Orr,George (007),exact,Branden Orr
+GC,Brian Harnett,George (007),exact,Brian Harnett
+GC,Bullhead Holding LLC,Christian (444),fuzzy,25 - 0070 - Building H - Bullhead Holding LLC
+GC,CAE Inc. | CAE Air Wisconsin,George (007),fuzzy,CAE Air Wisconsin | CAE Inc.
+GC,CAE Inc. | CAE Mesa Air,George (007),fuzzy,CAE Inc. | CAE Mesa Air
+GC,CAE Inc. | CAE Phoenix_2511-FTO-SAI- CAE - Phoenix,George (007),fuzzy,CAE Inc.
+GC,CAE Inc. | CAE SIMCOM,George (007),fuzzy,CAE Inc. | CAE SIMCOM
+GC,Chris Hake,George (007),exact,Chris Hake
+GC,Christian Burwash,Nick (222),exact,Christian Burwash
+GC,Daniel and Breanna Roberts,Nick (222),exact,Daniel and Breanna Roberts
+GC,Danielle Wheelis,George (007),exact,Danielle Wheelis
+GC,Deanna Phillips,Nick (222),unmatched,
+GC,Derek Budimier,Nick (222),exact,Derek Budimier
+GC,Dewayne Adamson,Nick (222),exact,Dewayne Adamson
+GC,Doug Bingham   (FAA Falcon Air Field),Nick (222),fuzzy,Doug Bingham
+GC,Dr. Zaid Fadul,George (007),exact,Dr. Zaid Fadul
+GC,East Valley Ophthalmology,George (007),unmatched,
+GC,Erica Bonime,Nick (222),unmatched,
+GC,George Piekarski - C,Nick (222),exact,George Piekarski - C
+GC,Gordon Burhopp,George (007),exact,Gordon Burhopp
+GC,GP Improvements,George (007),exact,GP Improvements
+GC,Greg Fox and Nichole Brown,George (007),unmatched,
+GC,Hall Bath Project - Orlando Aquino,Nick (222),exact,Hall Bath Project - Orlando Aquino
+GC,"Helios Modern Pilates, LLC",Christian (444),exact,"Helios Modern Pilates, LLC"
+GC,Hunter Handley,George (007),exact,Hunter Handley
+GC,Ingrid Wiegand | Ingrid Wiegand #1,Nick (222),fuzzy,Ingrid Wiegand #1
+GC,iSearch Decor - Alicia Guerrieri | Mosher Residence,George (007),fuzzy,Mosher Residence
+GC,jana Foreman,Nick (222),exact,jana Foreman
+GC,Jayce & Kennedy Dalmolin/ Serv Pro,George (007),unmatched,
+GC,Jesse Keenan,George (007),exact,Jesse Keenan
+GC,Joe Murphy,Nick (222),exact,Joe Murphy
+GC,Joseph Murphy,Nick (222),exact,Joseph Murphy
+GC,JR ELECTRICAL SERVICE,Nick (222),exact,JR ELECTRICAL SERVICE
+GC,Karen Kendall,George (007),exact,Karen Kendall
+GC,Katherine Heuerman,Nick (222),exact,Katherine Heuerman
+GC,KB-26-Amanda Goossen-Guest Bath-,Nick (222),exact,KB-26-Amanda Goossen-Guest Bath-
+GC,Kennedy Dalomalin,George (007),unmatched,
+GC,Kevin Wright,Nick (222),exact,Kevin Wright
+GC,Kim and Paul Versage,George (007),unmatched,
+GC,Kyle Wesley,Nick (222),exact,Kyle Wesley
+GC,Lake Pleasant Harbor,George (007),unmatched,
+GC,Lara Sosnow | Lara Sosnow #2 Master Bath,Nick (222),fuzzy,Lara Sosnow #2 Master Bath
+GC,Leanne Corbisello,George (007),exact,Leanne Corbisello
+GC,Love Pool Care Paul Meister,George (007),exact,Love Pool Care Paul Meister
+GC,Margie & Steve Kerr,George (007),unmatched,
+GC,Marina Lamb | 26-GC-LAMB-TUCCI SUNSHADE,George (007),fuzzy,26-GC-LAMB-TUCCI SUNSHADE
+GC,Mark Kampf,Nick (222),exact,Mark Kampf
+GC,Marlene Greenburg,Nick (222),unmatched,
+GC,Mike Connelly,George (007),exact,Mike Connelly
+GC,Mike Love,George (007),exact,Mike Love
+GC,Misty Brooks,Nick (222),exact,Misty Brooks
+GC,Nancy Stanton,George (007),exact,Nancy Stanton
+GC,Nyla Wlodarczyk,George (007),exact,Nyla Wlodarczyk
+GC,Orlando Aquino,Nick (222),exact,Orlando Aquino
+GC,Palm Canyon,George (007),exact,Palm Canyon
+GC,Palmyre J louvain Dalous,George (007),exact,Palmyre J louvain Dalous
+GC,Pamela Kipnes,George (007),unmatched,
+GC,Ralph Titus,George (007),exact,Ralph Titus
+GC,Reach Family Services (Bank Conversion),George (007),fuzzy,Reach Family Services
+GC,Rebekah Wall,Nick (222),exact,Rebekah Wall
+GC,Reggie Heywood,George (007),exact,Reggie Heywood
+GC,Remediation (Katherine Heuerman),Nick (222),fuzzy,Katherine Heuerman
+GC,Ruthjane and Gary Willow,Nick (222),unmatched,
+GC,Saint Roofing,George (007),exact,Saint Roofing
+GC,Scott Phillips,Nick (222),unmatched,
+GC,Sharlene and Keith Carney,Nick (222),exact,Sharlene and Keith Carney
+GC,Stacy Weber,George (007),exact,Stacy Weber
+GC,Stanislov Sazonov,Nick (222),exact,Stanislov Sazonov
+GC,Steve & Jodine De Laveaga | 26 - Steve & Jodine De Laveaga #1,Nick (222),fuzzy,26 - Steve & Jodine De Laveaga #1
+GC,Steve Veit | Steve Veit #2- E. Bella Vista,George (007),fuzzy,Steve Veit #2- E. Bella Vista
+GC,Therapez,George (007),exact,Therapez
+GC,"Tina Collins | Master Bath Project - Tina Collins - 2805 N 49th pl Phoenix, Az",Nick (222),fuzzy,"Master Bath Project - Tina Collins - 2805 N 49th pl Phoenix, Az"
+GC,Tom Curry,George (007),exact,Tom Curry
+GC,Tony Helm,George (007),unmatched,
+GC,Vicki Scheel,George (007),exact,Vicki Scheel
+GC,Vicki Scheel - 6231 E Yucca St - #1,George (007),exact,Vicki Scheel - 6231 E Yucca St - #1
+GC,Zoë Tavernaris,George (007),exact,Zoë Tavernaris
+WD,Abbas Rastegar,Nick (222),exact,Abbas Rastegar
+WD,Adam Hawkins and Abigail Polito,Nick (222),exact,Adam Hawkins and Abigail Polito
+WD,Adam Hizme,Eric (333),exact,Adam Hizme
+WD,Amy Jorgensen,Eric (333),exact,Amy Jorgensen
+WD,Andree Zipp,Nick (222),exact,Andree Zipp
+WD,Andrews Construction,Nick (222),exact,Andrews Construction
+WD,Angela Groth,Nick (222),exact,Angela Groth
+WD,Angela Groth,Nick (222),exact,Angela Groth
+WD,Cathrine Bogle,Nick (222),exact,Cathrine Bogle
+WD,Cathrine Bogle,Nick (222),exact,Cathrine Bogle
+WD,Chris Betteridge,Nick (222),exact,Chris Betteridge
+WD,"Cuauhtli Construction, LLC",Eric (333),exact,"Cuauhtli Construction, LLC"
+WD,Curtis Chipman,Nick (222),exact,Curtis Chipman
+WD,DAVE HERWIG,Eric (333),unmatched,
+WD,Dewayne Adamson,Nick (222),exact,Dewayne Adamson
+WD,Diane Galuska,Eric (333),exact,Diane Galuska
+WD,Doug Deimeke,Nick (222),exact,Doug Deimeke
+WD,Edward Cahill,Eric (333),exact,Edward Cahill
+WD,Hizme 54th ct casita,Eric (333),exact,Hizme 54th ct casita
+WD,Indigo Contracting,Nick (222),exact,Indigo Contracting
+WD,Jacob Jones,Nick (222),unmatched,
+WD,Jamie Donohue,Nick (222),exact,Jamie Donohue
+WD,Jeff Sonnenberg,Nick (222),exact,Jeff Sonnenberg
+WD,Jill Lewis,Nick (222),exact,Jill Lewis
+WD,Jonathan Betancourt,Nick (222),exact,Jonathan Betancourt
+WD,Jonathan Betancourt,Nick (222),exact,Jonathan Betancourt
+WD,Jonathan Pino,Nick (222),exact,Jonathan Pino
+WD,Jonathan Pino,Nick (222),exact,Jonathan Pino
+WD,Jordan and Clayton Hill,Nick (222),exact,Jordan and Clayton Hill
+WD,Kathryn Peple,Eric (333),exact,KATHRYN PEPLE | Kathryn Peple
+WD,Kevin Solinsky,Nick (222),exact,Kevin Solinsky
+WD,Larry Bending #1,Nick (222),exact,Larry Bending #1
+WD,Leanne Corbisello,Eric (333),exact,Leanne Corbisello
+WD,Manuel Rayas,Nick (222),exact,Manuel Rayas
+WD,Manuel Rayas,Nick (222),exact,Manuel Rayas
+WD,Mardino Sison,Daniel (555),exact,Mardino Sison
+WD,Matt Schaeufele,Nick (222),exact,Matt Schaeufele
+WD,Matthew Tiero,Nick (222),exact,Matthew Tiero
+WD,Max Schuman,Nick (222),exact,Max Schuman
+WD,Michael Speck,Nick (222),exact,Michael Speck
+WD,Michael Speck,Nick (222),exact,Michael Speck
+WD,Nabor Rios,Nick (222),exact,Nabor Rios
+WD,NOAH LANDA,Eric (333),exact,NOAH LANDA
+WD,Paul Rapauno,Nick (222),exact,Paul Rapauno
+WD,Paul Rapuano,Nick (222),exact,Paul Rapuano
+WD,Peter Yang,Nick (222),exact,Peter Yang
+WD,Robin Kreitman,Nick (222),exact,Robin Kreitman
+WD,Scott Fleming,Nick (222),exact,Scott Fleming
+WD,Sharlene Carney,Nick (222),exact,Sharlene Carney
+WD,Steve & Jodine De Laveaga #1,Nick (222),exact,Steve & Jodine De Laveaga #1
+WD,Steve and Jodine De Levaega,Nick (222),exact,Steve and Jodine De Levaega
+WD,Toma and Dawna Lepler,Nick (222),exact,Toma and Dawna Lepler
+WD,26-WD-HERWIG-6037 E CHARTER OAK RD,Eric (333),exact,26-WD-HERWIG-6037 E CHARTER OAK RD
+WD,BANK CONVERSION NGC,Eric (333),fuzzy,BANK CONVERSION
+WD,HARR-JACKLIN DR,Eric (333),exact,HARR-JACKLIN DR
+WD,W/D-26-FADUL NGC,Eric (333),fuzzy,W/D-26-FADUL
+WD,W/D-26-LAKE PLEASANT NGC,Eric (333),fuzzy,W/D-26-LAKE PLEASANT
+WD,"Gin Luxe, LLC. Ginny Burroughs",Eric (333),unmatched,
+WD,WD-25-DENEKE,Daniel (555),exact,WD-25-DENEKE
+WD,WD-25-GARVEY,Eric (333),exact,WD-25-GARVEY
+WD,WD-25-SCHEEL,Eric (333),exact,WD-25-SCHEEL
+WD,WD-26-BUILDING H  NGC,Eric (333),fuzzy,WD-26-BUILDING H
+WD,WD-26-FOX,Eric (333),exact,WD-26-FOX
+WD,WD-26-HELIOS,Eric (333),exact,WD-26-HELIOS
+WD,WD-26-MORRIS,Eric (333),exact,WD-26-MORRIS
+WD,WD-26-STRYKER-FAIRBANKS,Eric (333),exact,WD-26-STRYKER-FAIRBANKS
+WD,Woolgar Res,Eric (333),exact,Woolgar Res
