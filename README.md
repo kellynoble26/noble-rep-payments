@@ -9,3 +9,5 @@ Passcode-locked GitHub Pages site for Noble Windows and Doors REP payments.
 Refresh from `/workspace/rep-web/refresh.sh` (requires `FIELD_LEDGER_PASSCODE`; never commit the passcode).
 
 Monies received (GC and WD together) is `received.html`, linked from the passcode screen. Rebuild it with `tools/build_monies_received.py`. The same `FIELD_LEDGER_PASSCODE` seals the page; the script never prints or stores the passcode. Pages uploads `received.html` only after that seal. An unlocked file on a review branch is omitted from the Pages artifact.
+
+The office PC can refresh that sealed page every two hours. The installer and the setup steps are in `tools/install_cash_flow_task.ps1`. Run it on NobleOfficeMgr. It does not contain the passcode.

@@ -335,9 +335,10 @@ REP_CODE_RULES = (
     ("222", "Nick"),
     ("007", "George"),
     ("444", "Christian"),
+    ("555", "Daniel"),
 )
 _CODE_PATTERN = re.compile(
-    r"(?:^|(?<=[\s\-_.,/()]))(333|222|007|444)(?=$|[\s\-_.,/()])"
+    r"(?:^|(?<=[\s\-_.,/()]))(333|222|007|444|555)(?=$|[\s\-_.,/()])"
 )
 _DIRECTION = re.compile(r"(?i)^(N|S|E|W|NE|NW|SE|SW|North|South|East|West)$")
 
@@ -490,6 +491,24 @@ def verify(rows: list[dict]) -> dict:
     }
 
 
+def totals_from_rows(rows: list[dict]) -> dict:
+    """Totals for a workbook that has grown past the frozen check figures."""
+    by_co = defaultdict(lambda: {"n": 0, "cents": 0})
+    months: dict[str, dict[str, int]] = {}
+    for row in rows:
+        by_co[row["co"]]["n"] += 1
+        by_co[row["co"]]["cents"] += row["amountCents"]
+        month = row["when"][:7]
+        bucket = months.setdefault(month, {"GC": 0, "WD": 0})
+        bucket[row["co"]] += row["amountCents"]
+    return {
+        "all": {"n": len(rows), "cents": sum(row["amountCents"] for row in rows)},
+        "GC": {"n": by_co["GC"]["n"], "cents": by_co["GC"]["cents"]},
+        "WD": {"n": by_co["WD"]["n"], "cents": by_co["WD"]["cents"]},
+        "months": months,
+    }
+
+
 def js_payload(data) -> str:
     return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
 
@@ -505,22 +524,22 @@ def slash_day(iso: str) -> str:
     return f"{month}/{day}/{year}"
 
 
-def render_report(rows: list[dict], expected: dict) -> str:
+def render_report(rows: list[dict], expected: dict, updated: str = "11/18/2026") -> str:
     payments = js_payload(rows)
     expect = js_payload(expected)
     whens = [row["when"] for row in rows]
     date_range = f"{slash_day(min(whens))} through {slash_day(max(whens))}"
     check = (
         "Checked against the workbook: "
-        f"All {EXPECTED_ALL[0]} / {money_text(EXPECTED_ALL[1])} · "
-        f"GC {EXPECTED_CO['GC'][0]} / {money_text(EXPECTED_CO['GC'][1])} · "
-        f"WD {EXPECTED_CO['WD'][0]} / {money_text(EXPECTED_CO['WD'][1])}."
+        f"All {expected['all']['n']} / {money_text(expected['all']['cents'])} · "
+        f"GC {expected['GC']['n']} / {money_text(expected['GC']['cents'])} · "
+        f"WD {expected['WD']['n']} / {money_text(expected['WD']['cents'])}."
     )
     return (
         REPORT_HTML.replace("__PAYMENTS__", payments)
         .replace("__EXPECT__", expect)
         .replace("__LOGO_SRC__", LOGO_SRC)
-        .replace("__UPDATED__", "11/18/2026")
+        .replace("__UPDATED__", updated)
         .replace("__RANGE__", date_range)
         .replace("__CHECK_LINE__", check)
     )
@@ -1640,16 +1659,44 @@ def self_test_crypto() -> None:
         raise SystemExit("crypto self-test failed")
 
 
+def arizona_today() -> str:
+    from zoneinfo import ZoneInfo
+
+    return datetime.now(ZoneInfo("America/Phoenix")).strftime("%m/%d/%Y")
+
+
+def seal_workbook(workbook: Path, out: Path, reps: Path) -> dict:
+    """Rebuild the sealed page from the live workbook. Never writes plaintext."""
+    password = os.environ.get("FIELD_LEDGER_PASSCODE", "")
+    if not password:
+        raise SystemExit("FIELD_LEDGER_PASSCODE is not set")
+    rows = load_rows(workbook)
+    apply_branch_deposits(rows)
+    apply_rep_map(rows, reps)
+    expected = totals_from_rows(rows)
+    sealed = seal(render_report(rows, expected, updated=arizona_today()), password)
+    if "AES-GCM" not in sealed or "const PAYMENTS" in sealed:
+        raise SystemExit("Refusing to write an unsealed page")
+    out.write_text(sealed, encoding="utf-8")
+    return expected["all"]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gc", type=Path, required=False, help="GC payments CSV")
     parser.add_argument("--wd", type=Path, required=False, help="WD payments CSV")
+    parser.add_argument("--workbook", type=Path, required=False, help="Live Monies Received workbook")
     parser.add_argument("--reps", type=Path, default=ROOT / "data" / "rep-customer-map.csv")
     parser.add_argument("--self-test", action="store_true", help="Check the seal round-trip and exit")
     args = parser.parse_args()
     if args.self_test:
         self_test_crypto()
         print("crypto self-test ok")
+        return
+    out = ROOT / "received.html"
+    if args.workbook:
+        totals = seal_workbook(args.workbook, out, args.reps)
+        print(f"sealed {out} ({totals['n']} payments)")
         return
     if not args.gc or not args.wd:
         parser.error("--gc and --wd payment CSVs are required")
@@ -1659,7 +1706,6 @@ def main() -> None:
     write_rep_code_review(rows, ROOT / "data" / "rep-code-review.csv")
     expected = verify(rows)
     html = render_report(rows, expected)
-    out = ROOT / "received.html"
     password = os.environ.get("FIELD_LEDGER_PASSCODE", "")
     if password:
         out.write_text(seal(html, password), encoding="utf-8")
